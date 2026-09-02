@@ -222,6 +222,18 @@ def get_default_deploy_url():
     env_url = os.environ.get("DEPLOY_URL")
     if env_url:
         return env_url
+
+    # Check if running on Streamlit Cloud or public web host via request headers
+    try:
+        if hasattr(st, "context") and hasattr(st.context, "headers"):
+            headers = st.context.headers
+            host = headers.get("x-forwarded-host") or headers.get("host")
+            if host and "localhost" not in host and "127.0.0.1" not in host:
+                proto = headers.get("x-forwarded-proto", "https")
+                return f"{proto}://{host}"
+    except Exception:
+        pass
+
     local_ip = get_local_wifi_ip()
     return f"http://{local_ip}:8000"
 
