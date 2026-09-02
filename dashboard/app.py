@@ -52,6 +52,51 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+import sys
+import threading
+import time
+from pathlib import Path
+
+# Ensure repo root is in sys.path
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
+# Ensure database is initialized & seeded
+try:
+    from backend.database import init_db
+    from backend.seed import seed_all
+    init_db()
+    seed_all(reset=False)
+except Exception:
+    pass
+
+
+def start_backend_if_needed():
+    """Auto-starts FastAPI server in a background thread if not already running."""
+    try:
+        r = requests.get("http://127.0.0.1:8000/api/health", timeout=1)
+        if r.status_code == 200:
+            return
+    except Exception:
+        pass
+
+    try:
+        import uvicorn
+        from backend.main import app as fastapi_app
+
+        def _run_server():
+            uvicorn.run(fastapi_app, host="127.0.0.1", port=8000, log_level="error")
+
+        t = threading.Thread(target=_run_server, daemon=True)
+        t.start()
+        time.sleep(1.5)
+    except Exception:
+        pass
+
+
+start_backend_if_needed()
+
 API_BASE = os.environ.get("FOODFLOW_API_URL", "http://127.0.0.1:8000/api")
 DAYS = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
 MEAL_ORDER = ["breakfast", "lunch", "snacks", "dinner"]
