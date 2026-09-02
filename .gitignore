@@ -8,3 +8,4 @@ runs/
 *.pt
 *.log
 dataset/
+data/

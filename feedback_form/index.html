@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodFlow AI — Diner Plate Feedback</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border-color: #334155;
+            --chip-bg: #334155;
+            --chip-selected: #059669;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 2rem 1.5rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-color);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1.8rem;
+        }
+
+        .header h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            margin-bottom: 0.4rem;
+        }
+
+        .header p {
+            color: var(--text-sub);
+            font-size: 0.9rem;
+            line-height: 1.4;
+        }
+
+        .form-group {
+            margin-bottom: 1.4rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: #cbd5e1;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select, input, textarea {
+            width: 100%;
+            padding: 0.8rem 1rem;
+            border-radius: 12px;
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            font-size: 0.95rem;
+            outline: none;
+            transition: all 0.2s ease;
+        }
+
+        select:focus, textarea:focus {
+            border-color: var(--accent);
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        .reasons-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.6rem;
+        }
+
+        .reason-chip {
+            background-color: var(--chip-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 0.75rem 0.6rem;
+            text-align: center;
+            font-size: 0.85rem;
+            font-weight: 500;
+            color: #cbd5e1;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.4rem;
+        }
+
+        .reason-chip.selected {
+            background-color: var(--chip-selected);
+            color: #ffffff;
+            border-color: var(--accent);
+            font-weight: 600;
+        }
+
+        button.btn-submit {
+            width: 100%;
+            padding: 1rem;
+            background-color: var(--accent);
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: background-color 0.2s ease, transform 0.1s ease;
+            margin-top: 1rem;
+        }
+
+        button.btn-submit:hover {
+            background-color: var(--accent-hover);
+        }
+
+        button.btn-submit:active {
+            transform: scale(0.98);
+        }
+
+        .thank-you {
+            display: none;
+            text-align: center;
+            padding: 2rem 1rem;
+        }
+
+        .thank-you h2 {
+            font-size: 1.6rem;
+            color: var(--accent);
+            margin-bottom: 0.6rem;
+        }
+
+        .thank-you p {
+            color: var(--text-sub);
+            font-size: 0.95rem;
+            margin-bottom: 1.5rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div id="formContainer">
+        <div class="header">
+            <h1>🌱 FoodFlow Feedback</h1>
+            <p>Tell us why food was left behind today so we can cook smarter tomorrow.</p>
+        </div>
+
+        <form id="feedbackForm">
+            <div class="form-group">
+                <label for="siteSelect">Cafeteria / Mess Location</label>
+                <select id="siteSelect" required>
+                    <option value="">Loading locations...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="mealSelect">Meal</label>
+                <select id="mealSelect" required>
+                    <option value="lunch" selected>Lunch</option>
+                    <option value="breakfast">Breakfast</option>
+                    <option value="dinner">Dinner</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="dishSelect">Which dish was left over?</label>
+                <select id="dishSelect">
+                    <option value="">Loading today's menu...</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>Why was food left on the plate? (Select all that apply)</label>
+                <div class="reasons-grid">
+                    <div class="reason-chip" data-reason="portion_too_big">🥣 Portion too big</div>
+                    <div class="reason-chip" data-reason="didnt_like_taste">👅 Didn't like taste</div>
+                    <div class="reason-chip" data-reason="quality_poor">❄️ Not fresh / poor quality</div>
+                    <div class="reason-chip" data-reason="too_spicy">🌶️ Too spicy</div>
+                    <div class="reason-chip" data-reason="not_hungry">😌 Wasn't hungry</div>
+                    <div class="reason-chip" data-reason="other">💭 Other reason</div>
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="commentInput">Any extra comments for the chef?</label>
+                <textarea id="commentInput" rows="2" placeholder="Optional comments or suggestions..."></textarea>
+            </div>
+
+            <button type="submit" class="btn-submit">Submit Feedback</button>
+        </form>
+    </div>
+
+    <div id="thankYouContainer" class="thank-you">
+        <h2>🎉 Thank You!</h2>
+        <p>Your feedback directly influences tomorrow's cooking quantities and recipes.</p>
+        <button class="btn-submit" onclick="resetForm()">Submit Another Response</button>
+    </div>
+</div>
+
+<script>
+    const API_BASE = 'http://127.0.0.1:8000/api';
+    const selectedReasons = new Set();
+
+    // Toggle multi-select chips
+    document.querySelectorAll('.reason-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            const reason = chip.getAttribute('data-reason');
+            if (selectedReasons.has(reason)) {
+                selectedReasons.delete(reason);
+                chip.classList.remove('selected');
+            } else {
+                selectedReasons.add(reason);
+                chip.classList.add('selected');
+            }
+        });
+    });
+
+    // Fetch sites
+    async function loadSites() {
+        try {
+            const res = await fetch(`${API_BASE}/sites`);
+            if (res.ok) {
+                const sites = await res.json();
+                const sel = document.getElementById('siteSelect');
+                sel.innerHTML = sites.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+                loadTodayMenu();
+            }
+        } catch (e) {
+            console.error('Failed to load sites:', e);
+        }
+    }
+
+    // Dynamic menu loading for today
+    async function loadTodayMenu() {
+        const siteId = document.getElementById('siteSelect').value;
+        const meal = document.getElementById('mealSelect').value;
+        const sel = document.getElementById('dishSelect');
+        sel.innerHTML = '<option value="">Loading today\'s menu...</option>';
+
+        try {
+            let url = `${API_BASE}/menu/today?meal=${meal}`;
+            if (siteId) url += `&site_id=${siteId}`;
+
+            const res = await fetch(url);
+            if (res.ok) {
+                const dishes = await res.json();
+                if (dishes.length > 0) {
+                    sel.innerHTML = '<option value="">-- Select Dish (Optional) --</option>' +
+                        dishes.map(d => `<option value="${d.id}">${d.name} (${d.category})</option>`).join('');
+                } else {
+                    sel.innerHTML = '<option value="">All Dishes / General Meal</option>';
+                }
+            }
+        } catch (e) {
+            sel.innerHTML = '<option value="">General Meal Feedback</option>';
+        }
+    }
+
+    document.getElementById('siteSelect').addEventListener('change', loadTodayMenu);
+    document.getElementById('mealSelect').addEventListener('change', loadTodayMenu);
+
+    // Form submit
+    document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const siteId = parseInt(document.getElementById('siteSelect').value) || null;
+        const meal = document.getElementById('mealSelect').value;
+        const dishId = parseInt(document.getElementById('dishSelect').value) || null;
+        const comment = document.getElementById('commentInput').value;
+
+        const payload = {
+            site_id: siteId,
+            meal: meal,
+            dish_id: dishId,
+            reasons: Array.from(selectedReasons),
+            comment: comment
+        };
+
+        try {
+            const res = await fetch(`${API_BASE}/feedback`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            if (res.ok) {
+                document.getElementById('formContainer').style.display = 'none';
+                document.getElementById('thankYouContainer').style.display = 'block';
+            } else {
+                alert('Submission failed. Please try again.');
+            }
+        } catch (err) {
+            alert('Error connecting to FoodFlow server.');
+        }
+    });
+
+    function resetForm() {
+        selectedReasons.clear();
+        document.querySelectorAll('.reason-chip').forEach(c => c.classList.remove('selected'));
+        document.getElementById('commentInput').value = '';
+        document.getElementById('thankYouContainer').style.display = 'none';
+        document.getElementById('formContainer').style.display = 'block';
+    }
+
+    // Initialize
+    loadSites();
+</script>
+
+</body>
+</html>
