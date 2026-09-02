@@ -26,47 +26,64 @@ st.set_page_config(
 st.markdown(
     """
 <style>
-    /* Hide Radio Bubble Selection Dots */
-    div[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {
+    /* Target Streamlit Radio Group Container */
+    div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] {
+        gap: 0.6rem !important;
+    }
+    
+    /* Hide Radio Bubble Selection Dots (All selectors) */
+    div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label > div:first-child,
+    div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label div[aria-hidden="true"],
+    div[data-testid="stSidebar"] [data-testid="stRadio"] label > div[aria-hidden="true"] {
         display: none !important;
+        visibility: hidden !important;
+        width: 0 !important;
+        height: 0 !important;
+        margin: 0 !important;
     }
     
     /* Convert Radio Options into Professional Sliding Division Cards */
-    div[data-testid="stSidebar"] div[role="radiogroup"] label {
-        background-color: #1e293b !important;
+    div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label,
+    div[data-testid="stSidebar"] [data-testid="stRadio"] label {
+        background: #1e293b !important;
         border: 1px solid #334155 !important;
-        border-left: 4px solid #475569 !important;
-        border-radius: 10px !important;
+        border-left: 5px solid #475569 !important;
+        border-radius: 12px !important;
         padding: 0.75rem 1rem !important;
-        margin-bottom: 0.5rem !important;
+        margin-bottom: 0.4rem !important;
         width: 100% !important;
+        display: flex !important;
+        align-items: center !important;
         transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
         cursor: pointer !important;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.2) !important;
     }
     
     /* Hover Animation & Sliding Effect */
-    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
-        background-color: #334155 !important;
+    div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:hover,
+    div[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+        background: #334155 !important;
         border-left-color: #10b981 !important;
         transform: translateX(6px) !important;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+        box-shadow: 0 6px 16px rgba(0,0,0,0.3) !important;
     }
     
     /* Active Selected Item Division Card */
-    div[data-testid="stSidebar"] div[role="radiogroup"] label[aria-checked="true"],
-    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+    div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label:has(input:checked),
+    div[data-testid="stSidebar"] [data-testid="stRadio"] div[role="radiogroup"] label[data-checked="true"],
+    div[data-testid="stSidebar"] [data-testid="stRadio"] label[aria-checked="true"] {
         background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%) !important;
         border-color: #10b981 !important;
         border-left: 6px solid #10b981 !important;
-        transform: translateX(4px) !important;
-        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2) !important;
+        transform: translateX(6px) !important;
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.25) !important;
     }
     
     /* Division Menu Text Styling */
-    div[data-testid="stSidebar"] div[role="radiogroup"] label p {
+    div[data-testid="stSidebar"] [data-testid="stRadio"] label div[data-testid="stMarkdownContainer"] p,
+    div[data-testid="stSidebar"] [data-testid="stRadio"] label p {
         color: #f8fafc !important;
-        font-weight: 600 !important;
+        font-weight: 700 !important;
         font-size: 0.95rem !important;
         letter-spacing: 0.01em !important;
         margin: 0 !important;
