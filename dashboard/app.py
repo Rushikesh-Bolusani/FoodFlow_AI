@@ -18,7 +18,7 @@ import streamlit as st
 
 st.set_page_config(
     page_title="FoodFlow AI — Hostel 1 Kitchen Board",
-    page_icon="🌱",
+    page_icon="🍱",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -105,7 +105,7 @@ st.markdown(
 <div style="background-color:#1e293b; border:1px solid #334155; border-radius:12px; padding:1.2rem; margin-bottom:1.5rem;">
     <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
         <div>
-            <h2 style="color:#ffffff; margin:0; font-size:1.6rem; font-weight:800;">📍 {selected_site_name} Mess</h2>
+            <h2 style="color:#ffffff; margin:0; font-size:1.6rem; font-weight:800;">🍱 {selected_site_name} Mess</h2>
             <p style="color:#94a3b8; margin:0.2rem 0 0 0; font-size:0.95rem;">{location_str} • Food Waste Intelligence & AI Forecasting Board</p>
         </div>
         <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:center;">
@@ -136,7 +136,7 @@ st.markdown(
 )
 
 # ===== SIDEBAR NAVIGATION =====
-st.sidebar.title("🌱 FoodFlow AI")
+st.sidebar.title("🍱 FoodFlow AI")
 st.sidebar.caption("Hostel 1 Mess Management")
 
 nav_options = [

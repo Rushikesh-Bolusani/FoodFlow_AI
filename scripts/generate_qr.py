@@ -73,7 +73,7 @@ def generate_qr(target_base_url: str = "http://127.0.0.1:8000") -> Path:
     footer_font = load_font("arial.ttf", 20)
 
     # Header Text
-    draw.text((60, 50), "🌱 FoodFlow AI", fill="#10b981", font=title_font)
+    draw.text((60, 50), "🍱 FoodFlow AI", fill="#10b981", font=title_font)
     draw.text((60, 105), "HOSTEL 1 — DINER FEEDBACK", fill="#ffffff", font=subtitle_font)
     draw.text((60, 142), "Scan to tell us why food was left on your plate!", fill="#94a3b8", font=sub_font)
 
