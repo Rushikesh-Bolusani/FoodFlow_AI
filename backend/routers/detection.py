@@ -32,7 +32,12 @@ async def detect_plate_leftovers(
 
     site = db.get(models.Site, site_id)
     if not site:
-        raise HTTPException(status_code=404, detail=f"No site found with ID {site_id}")
+        site = db.query(models.Site).first()
+        if not site:
+            site = models.Site(name="Hostel 1", location="Hostel Block 1 Mess")
+            db.add(site)
+            db.commit()
+            db.refresh(site)
 
     try:
         contents = await file.read()
