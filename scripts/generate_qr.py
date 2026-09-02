@@ -36,7 +36,25 @@ def load_font(name: str, size: int) -> ImageFont.FreeTypeFont | ImageFont.ImageF
     return ImageFont.load_default()
 
 
-def generate_qr(target_base_url: str = "http://127.0.0.1:8000") -> Path:
+import socket
+
+
+def get_local_wifi_ip():
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
+def generate_qr(target_base_url: str = None) -> Path:
+    if not target_base_url or "127.0.0.1" in target_base_url:
+        local_ip = get_local_wifi_ip()
+        target_base_url = f"http://{local_ip}:8000"
+
     target_base_url = target_base_url.rstrip("/")
     feedback_url = f"{target_base_url}/feedback_form/index.html?site_id=1"
 

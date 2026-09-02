@@ -203,13 +203,36 @@ nav_page = st.sidebar.radio(
     key="nav_page",
 )
 
+import socket
+
+
+def get_local_wifi_ip():
+    """Auto-detect active local Wi-Fi IPv4 address for mobile phone scanning."""
+    try:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"
+
+
+def get_default_deploy_url():
+    env_url = os.environ.get("DEPLOY_URL")
+    if env_url:
+        return env_url
+    local_ip = get_local_wifi_ip()
+    return f"http://{local_ip}:8000"
+
+
 st.sidebar.markdown("---")
 st.sidebar.markdown("### 📱 Fixed Diner QR Feedback")
-default_app_url = os.environ.get("DEPLOY_URL", "http://127.0.0.1:8000")
+default_app_url = get_default_deploy_url()
 deploy_base = st.sidebar.text_input(
-    "Deployment Server Base URL",
+    "Server Base URL for QR Code",
     value=default_app_url,
-    help="Set your live server domain (e.g. https://foodflow.onrender.com)",
+    help="Set your live domain (e.g. https://foodflowai.streamlit.app or http://192.168.0.4:8000)",
 )
 qr_target_url = f"{deploy_base.rstrip('/')}/feedback_form/index.html?site_id={selected_site_id}"
 
