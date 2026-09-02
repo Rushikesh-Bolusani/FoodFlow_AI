@@ -640,13 +640,18 @@ elif nav_page == "📅 Weekly Menu & Event Schedule":
 # ===== PAGE 7: DINER FEEDBACK & QR CODE =====
 elif nav_page == "📱 Diner Feedback & QR Code":
     st.header("📱 Diner Feedback & QR Code")
-    st.caption("Manage Hostel 1 plate return QR codes and review diner feedback comments.")
+    st.caption("Manage Hostel 1 plate return QR codes, fill out the diner form, and review comments.")
 
     c_qr1, c_qr2 = st.columns([1, 1])
     with c_qr1:
         st.subheader("Printable QR Standee")
-        st.image(qr_img_bytes, caption="Hostel 1 Permanent Feedback QR Code", width=360)
-        st.markdown(f"**Direct Link:** [{qr_target_url}]({qr_target_url})")
+        st.image(qr_img_bytes, caption="Hostel 1 Permanent Feedback QR Code", width=340)
+        st.markdown(f"**🔗 Direct Feedback Form Link:** [{qr_target_url}]({qr_target_url})")
+
+        st.markdown("---")
+        st.subheader("Live Mobile Form Preview")
+        import streamlit.components.v1 as components
+        components.iframe(qr_target_url, height=580, scrolling=True)
 
     with c_qr2:
         st.subheader("Recent diner comments")

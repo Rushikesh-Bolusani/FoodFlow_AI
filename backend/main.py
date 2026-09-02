@@ -72,12 +72,20 @@ if _FEEDBACK_DIR.is_dir():
     )
 
 
+@app.get("/feedback")
+@app.get("/qr")
+def redirect_feedback():
+    from fastapi.responses import RedirectResponse
+    return RedirectResponse(url="/feedback_form/index.html?site_id=1")
+
+
 @app.get("/")
 def welcome():
     return {
         "message": "FoodFlow AI is running.",
         "docs": "/docs",
         "health": "/api/health",
+        "feedback_form": "/feedback_form/index.html?site_id=1",
     }
 
 
