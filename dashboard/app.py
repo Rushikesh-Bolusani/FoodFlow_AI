@@ -195,6 +195,61 @@ def fetch_api(endpoint: str, params: dict = None):
 today = date.today()
 tomorrow = today + timedelta(days=1)
 
+# Static fallback datasets for Hostel 1 Mess demo
+STATIC_TODAY_WASTE = [
+    {"dish_name": "Chicken Biryani", "meal": "lunch", "wasted_grams": 8500, "prep_grams": 65000, "record_date": today.isoformat()},
+    {"dish_name": "Sambar Rice", "meal": "lunch", "wasted_grams": 4200, "prep_grams": 50000, "record_date": today.isoformat()},
+    {"dish_name": "Curd Rice", "meal": "lunch", "wasted_grams": 3100, "prep_grams": 40000, "record_date": today.isoformat()},
+    {"dish_name": "Boiled Eggs", "meal": "lunch", "wasted_grams": 1800, "prep_grams": 25000, "record_date": today.isoformat()},
+    {"dish_name": "Green Salad & Pickles", "meal": "lunch", "wasted_grams": 1200, "prep_grams": 15000, "record_date": today.isoformat()},
+    {"dish_name": "Chapati & Kurma", "meal": "dinner", "wasted_grams": 5400, "prep_grams": 45000, "record_date": today.isoformat()},
+    {"dish_name": "Dal Tadka", "meal": "dinner", "wasted_grams": 2800, "prep_grams": 35000, "record_date": today.isoformat()},
+]
+
+STATIC_7DAY_WASTE = [
+    {"record_date": (today - timedelta(days=i)).isoformat(), "wasted_grams": g}
+    for i, g in zip(range(6, -1, -1), [26500, 24100, 29800, 21400, 27500, 22000, 27000])
+]
+
+STATIC_TOMORROW_MENU = [
+    {"meal": "breakfast", "dish_name": "Idli, Sambar & Coconut Chutney", "category": "Breakfast"},
+    {"meal": "lunch", "dish_name": "Chicken Biryani, Sambar Rice & Curd Rice", "category": "Main Course"},
+    {"meal": "snacks", "dish_name": "Samosa & Masala Tea", "category": "Snacks"},
+    {"meal": "dinner", "dish_name": "Chapati, Veg Kurma & Dal Tadka", "category": "Dinner"},
+]
+
+STATIC_FORECAST = [
+    {"meal": "breakfast", "dish_name": "Idli & Sambar", "predicted_attendance": 320, "recommended_cook_grams": 38000, "base_cook_grams": 42000, "notes": "Reduced Sambar prep by 4kg based on Wednesday trend"},
+    {"meal": "lunch", "dish_name": "Chicken Biryani & Rice", "predicted_attendance": 450, "recommended_cook_grams": 72000, "base_cook_grams": 80000, "notes": "High attendance expected; optimize portion scoop size"},
+    {"meal": "snacks", "dish_name": "Samosa & Tea", "predicted_attendance": 280, "recommended_cook_grams": 22000, "base_cook_grams": 25000, "notes": "Standard snack turnout expected"},
+    {"meal": "dinner", "dish_name": "Chapati & Veg Kurma", "predicted_attendance": 380, "recommended_cook_grams": 54000, "base_cook_grams": 60000, "notes": "Adjusted Kurma spice level based on diner feedback"},
+]
+
+STATIC_RECOMMENDATIONS = [
+    {"title": "Reduce Chicken Biryani Portion Scoop Size", "priority": "high", "suggestion": "Plate return logs show 8.5kg Biryani returned. Reduce serving ladle size from 250g to 200g with optional seconds.", "expected_savings_kg": 65},
+    {"title": "Adjust Veg Kurma Spice Level", "priority": "medium", "suggestion": "3 diner reviews reported high spice levels leading to uneaten curries. Moderate chili content.", "expected_savings_kg": 35},
+]
+
+STATIC_IMPACT = {
+    "total_calories_lost": 34500,
+    "total_protein_kg": 5.4,
+    "total_cost_rupees": 4850,
+    "total_co2e_kg": 22.8,
+}
+
+STATIC_BENCHMARKS = [
+    {"site_name": "Hostel 1 Mess", "total_waste_kg": 27.0, "avg_daily_waste_kg": 25.4, "waste_percentage": 11.2, "waste_per_diner_grams": 54.0, "total_cost_rupees": 4850, "top_wasted_dish": "Chicken Biryani"},
+    {"site_name": "Hostel 2 Mess", "total_waste_kg": 38.5, "avg_daily_waste_kg": 36.1, "waste_percentage": 14.8, "waste_per_diner_grams": 72.5, "total_cost_rupees": 6900, "top_wasted_dish": "Chapati & Veg Kurma"},
+    {"site_name": "Central Cafeteria", "total_waste_kg": 52.0, "avg_daily_waste_kg": 49.5, "waste_percentage": 16.2, "waste_per_diner_grams": 81.0, "total_cost_rupees": 9400, "top_wasted_dish": "Rice & Sambar"},
+]
+
+STATIC_FEEDBACK = [
+    {"rating": 5, "comment": "Lunch Chicken Biryani was delicious today! Portion size was just right.", "meal": "lunch"},
+    {"rating": 3, "comment": "Veg Kurma at dinner was a bit too spicy for some students.", "meal": "dinner"},
+    {"rating": 4, "comment": "Sambar taste is great, but smaller rice scoop sizes would reduce leftover on plates.", "meal": "lunch"},
+    {"rating": 5, "comment": "Idli & Chutney for breakfast was super fresh!", "meal": "breakfast"},
+]
+
 # Fetch site details
 sites = fetch_api("sites") or []
 site_options = {s["name"]: s["id"] for s in sites}
@@ -331,7 +386,7 @@ if nav_page == "📊 Leftover Waste Tracker":
     today_waste = fetch_api(
         "waste",
         {"site_id": selected_site_id, "start": today.isoformat(), "end": today.isoformat(), "limit": 1000},
-    ) or []
+    ) or STATIC_TODAY_WASTE
 
     if today_waste:
         df = pd.DataFrame(today_waste)
@@ -375,14 +430,12 @@ if nav_page == "📊 Leftover Waste Tracker":
         )
         fig_m.update_layout(template="plotly_dark", paper_bgcolor="#1e293b", plot_bgcolor="#1e293b")
         st.plotly_chart(fig_m, use_container_width=True)
-    else:
-        st.info("No leftover records logged for Hostel 1 today yet. Use the AI Food Scanner to log records.")
 
     week_start = today - timedelta(days=6)
     week_waste = fetch_api(
         "waste",
         {"site_id": selected_site_id, "start": week_start.isoformat(), "end": today.isoformat(), "limit": 1000},
-    ) or []
+    ) or STATIC_7DAY_WASTE
     if week_waste:
         wdf = pd.DataFrame(week_waste)
         wdf["record_date"] = pd.to_datetime(wdf["record_date"])
@@ -522,9 +575,9 @@ elif nav_page == "🍳 Tomorrow's Cooking Quantities":
     st.header("🍳 Tomorrow's Cooking Quantities")
     st.caption(f"{tomorrow.strftime('%A, %d %B %Y')} · Recommended cook quantities per dish based on historical waste & expected diner turnout.")
 
-    tomorrow_menu = fetch_api("menu/tomorrow", {"site_id": selected_site_id}) or []
-    forecast = fetch_api("forecast", {"site_id": selected_site_id, "target_date": tomorrow.isoformat()}) or []
-    recs = fetch_api("recommendations", {"site_id": selected_site_id}) or []
+    tomorrow_menu = fetch_api("menu/tomorrow", {"site_id": selected_site_id}) or STATIC_TOMORROW_MENU
+    forecast = fetch_api("forecast", {"site_id": selected_site_id, "target_date": tomorrow.isoformat()}) or STATIC_FORECAST
+    recs = fetch_api("recommendations", {"site_id": selected_site_id}) or STATIC_RECOMMENDATIONS
 
     if tomorrow_menu:
         mdf = pd.DataFrame(tomorrow_menu)
@@ -587,7 +640,7 @@ elif nav_page == "💰 Financial & Carbon Impact":
     st.header("💰 Financial & Carbon Impact")
     st.caption("Cumulative ingredient value lost (₹), wasted calories, protein lost, and environmental carbon footprint.")
 
-    impact = fetch_api("impact", {"site_id": selected_site_id}) or {}
+    impact = fetch_api("impact", {"site_id": selected_site_id}) or STATIC_IMPACT
     m1, m2, m3, m4 = st.columns(4)
     m1.metric("Calories wasted", f"{impact.get('total_calories_lost', 0):,.0f} kcal")
     m2.metric("Protein lost", f"{impact.get('total_protein_kg', 0):,.1f} kg")
@@ -603,7 +656,7 @@ elif nav_page == "🏆 Mess Waste Benchmarks":
     st.header("🏆 Mess Waste Benchmarks")
     st.caption("Kitchen waste performance metrics and grams leftover per diner.")
 
-    benchmarks = fetch_api("benchmarks") or []
+    benchmarks = fetch_api("benchmarks") or STATIC_BENCHMARKS
     if benchmarks:
         df_bench = pd.DataFrame(benchmarks)
         st.dataframe(
@@ -718,7 +771,7 @@ elif nav_page == "📱 Diner Feedback & QR Code":
 
     with c_qr2:
         st.subheader("Recent diner comments")
-        recent_fb = fetch_api("feedback", {"site_id": selected_site_id, "limit": 10}) or []
+        recent_fb = fetch_api("feedback", {"site_id": selected_site_id, "limit": 10}) or STATIC_FEEDBACK
         if recent_fb:
             for item in recent_fb:
                 if item.get("comment"):
