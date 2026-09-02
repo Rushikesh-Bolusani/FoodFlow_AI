@@ -26,6 +26,52 @@ st.set_page_config(
 st.markdown(
     """
 <style>
+    /* Hide Radio Bubble Selection Dots */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label > div:first-child {
+        display: none !important;
+    }
+    
+    /* Convert Radio Options into Professional Sliding Division Cards */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label {
+        background-color: #1e293b !important;
+        border: 1px solid #334155 !important;
+        border-left: 4px solid #475569 !important;
+        border-radius: 10px !important;
+        padding: 0.75rem 1rem !important;
+        margin-bottom: 0.5rem !important;
+        width: 100% !important;
+        transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1) !important;
+        cursor: pointer !important;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.15) !important;
+    }
+    
+    /* Hover Animation & Sliding Effect */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:hover {
+        background-color: #334155 !important;
+        border-left-color: #10b981 !important;
+        transform: translateX(6px) !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.25) !important;
+    }
+    
+    /* Active Selected Item Division Card */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label[aria-checked="true"],
+    div[data-testid="stSidebar"] div[role="radiogroup"] label:has(input:checked) {
+        background: linear-gradient(90deg, #1e293b 0%, #0f172a 100%) !important;
+        border-color: #10b981 !important;
+        border-left: 6px solid #10b981 !important;
+        transform: translateX(4px) !important;
+        box-shadow: 0 4px 15px rgba(16, 185, 129, 0.2) !important;
+    }
+    
+    /* Division Menu Text Styling */
+    div[data-testid="stSidebar"] div[role="radiogroup"] label p {
+        color: #f8fafc !important;
+        font-weight: 600 !important;
+        font-size: 0.95rem !important;
+        letter-spacing: 0.01em !important;
+        margin: 0 !important;
+    }
+    
     .metric-card {
         background-color: #1e293b;
         border: 1px solid #334155;
