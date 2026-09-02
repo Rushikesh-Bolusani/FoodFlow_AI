@@ -5,7 +5,14 @@ from typing import Literal, Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-Meal = Literal["breakfast", "lunch", "dinner"]
+Meal = Literal["breakfast", "lunch", "snacks", "dinner"]
+
+MEAL_TIMINGS = {
+    "breakfast": "7:30 AM – 10:00 AM",
+    "lunch": "12:30 PM – 2:00 PM",
+    "snacks": "4:30 PM – 5:30 PM",
+    "dinner": "7:30 PM – 9:00 PM",
+}
 
 # Human labels shared by the feedback page, API and dashboards.
 FEEDBACK_REASONS = {
@@ -45,6 +52,7 @@ class DishOut(BaseModel):
     protein_per_100g: float
     cost_per_100g: float
     co2e_per_100g: float
+    cv_class: str = ""
     is_active: bool
 
 
@@ -55,6 +63,7 @@ class DishIn(BaseModel):
     protein_per_100g: float = Field(default=8.0, ge=0)
     cost_per_100g: float = Field(default=6.0, ge=0)
     co2e_per_100g: float = Field(default=0.35, ge=0)
+    cv_class: str = Field(default="", max_length=60)
 
 
 # ---------- Waste records ----------
@@ -92,6 +101,7 @@ class FeedbackIn(BaseModel):
     meal: Meal = "lunch"
     dish_id: Optional[int] = None
     reasons: list[str] = Field(default_factory=list)
+    rating: Optional[int] = Field(default=None, ge=1, le=5)
     comment: str = Field(default="", max_length=500)
 
 
@@ -103,6 +113,7 @@ class FeedbackOut(BaseModel):
     meal: str
     dish_id: Optional[int] = None
     reasons: list[str]
+    rating: Optional[int] = None
     comment: str
     created_at: datetime
     site_name: str = ""

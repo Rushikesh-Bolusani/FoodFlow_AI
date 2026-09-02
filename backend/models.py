@@ -14,6 +14,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Integer,
     String,
     UniqueConstraint,
     func,
@@ -55,6 +56,7 @@ class Dish(Base):
     protein_per_100g: Mapped[float] = mapped_column(Float, default=8.0)
     cost_per_100g: Mapped[float] = mapped_column(Float, default=6.0)  # rupees
     co2e_per_100g: Mapped[float] = mapped_column(Float, default=0.35)  # kg CO2e
+    cv_class: Mapped[str] = mapped_column(String(60), default="")
     is_active: Mapped[bool] = mapped_column(default=True)
 
     waste_records: Mapped[list["WasteRecord"]] = relationship(
@@ -70,7 +72,7 @@ class WasteRecord(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     site_id: Mapped[int] = mapped_column(ForeignKey("sites.id"), index=True)
     dish_id: Mapped[int] = mapped_column(ForeignKey("dishes.id"), index=True)
-    meal: Mapped[str] = mapped_column(String(20))  # breakfast / lunch / dinner
+    meal: Mapped[str] = mapped_column(String(20))  # breakfast / lunch / snacks / dinner
     record_date: Mapped[date] = mapped_column(Date, index=True)
     wasted_grams: Mapped[float] = mapped_column(Float)
     prep_grams: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -110,6 +112,7 @@ class Feedback(Base):
         ForeignKey("dishes.id"), nullable=True
     )
     reasons: Mapped[list] = mapped_column(JSON, default=list)
+    rating: Mapped[int | None] = mapped_column(Integer, nullable=True)
     comment: Mapped[str] = mapped_column(String(500), default="")
     created_at: Mapped[datetime] = mapped_column(
         DateTime, server_default=func.now()

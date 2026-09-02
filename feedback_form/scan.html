@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FoodFlow AI — Mobile Plate Return Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#10b981">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FoodFlow AI">
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --text-main: #f8fafc;
+            --text-sub: #94a3b8;
+            --border-color: #334155;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            padding: 1rem;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 480px;
+            background-color: var(--card-bg);
+            border-radius: 20px;
+            padding: 1.8rem 1.4rem;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-color);
+            margin-top: 0.5rem;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .header h1 {
+            font-size: 1.6rem;
+            font-weight: 800;
+            color: #ffffff;
+            margin-bottom: 0.3rem;
+        }
+
+        .header p {
+            color: #e2e8f0;
+            font-size: 0.92rem;
+            font-weight: 500;
+        }
+
+        .badge {
+            display: inline-block;
+            background-color: rgba(16, 185, 129, 0.15);
+            color: var(--accent);
+            padding: 0.3rem 0.8rem;
+            border-radius: 20px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            margin-top: 0.4rem;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .form-group {
+            margin-bottom: 1.2rem;
+        }
+
+        label {
+            display: block;
+            font-size: 0.85rem;
+            font-weight: 700;
+            color: #f1f5f9;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select, input {
+            width: 100%;
+            padding: 0.85rem 1rem;
+            border-radius: 12px;
+            background-color: #0f172a;
+            border: 2px solid #475569;
+            color: #ffffff;
+            font-size: 1rem;
+            font-weight: 600;
+            outline: none;
+        }
+
+        .camera-box {
+            border: 2px dashed #475569;
+            border-radius: 16px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            background-color: #0f172a;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            margin-bottom: 1rem;
+        }
+
+        .camera-box:hover {
+            border-color: var(--accent);
+            background-color: rgba(16, 185, 129, 0.05);
+        }
+
+        .btn-snap {
+            width: 100%;
+            padding: 1rem;
+            background-color: #2563eb;
+            color: #ffffff;
+            font-size: 1.05rem;
+            font-weight: 700;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            margin-bottom: 1rem;
+        }
+
+        .btn-detect {
+            width: 100%;
+            padding: 1.1rem;
+            background-color: var(--accent);
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            margin-top: 0.5rem;
+        }
+
+        .btn-save {
+            width: 100%;
+            padding: 1.1rem;
+            background-color: #059669;
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: 800;
+            border: none;
+            border-radius: 14px;
+            cursor: pointer;
+            margin-top: 1rem;
+        }
+
+        #previewImg, #annotatedImg {
+            width: 100%;
+            border-radius: 14px;
+            margin-top: 0.8rem;
+            border: 2px solid var(--border-color);
+            display: none;
+        }
+
+        .results-card {
+            background-color: #0f172a;
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1rem;
+            margin-top: 1rem;
+            display: none;
+        }
+
+        .dish-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.6rem 0;
+            border-bottom: 1px solid #1e293b;
+        }
+
+        .dish-row:last-child {
+            border-bottom: none;
+        }
+
+        .dish-name { font-weight: 700; color: #f8fafc; }
+        .dish-conf { font-size: 0.8rem; color: #94a3b8; }
+        .dish-weight { font-weight: 800; color: var(--accent); font-size: 1.05rem; }
+
+        .spinner {
+            display: none;
+            text-align: center;
+            padding: 1rem;
+            color: var(--accent);
+            font-weight: 700;
+        }
+
+        .toast {
+            display: none;
+            background-color: #10b981;
+            color: #ffffff;
+            text-align: center;
+            padding: 0.9rem;
+            border-radius: 12px;
+            font-weight: 700;
+            margin-top: 1rem;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="header">
+        <h1>📸 Mobile Food Scanner</h1>
+        <p>Hostel 1 Mess — Plate Return Leftover Detector</p>
+        <div style="display:flex; justify-content:center; gap:0.5rem; margin-top:0.4rem;">
+            <span class="badge">🤖 YOLOv8 AI Powered</span>
+            <a href="http://127.0.0.1:8501" target="_blank" style="text-decoration:none;"><span class="badge" style="background-color:rgba(37,99,235,0.2); color:#60a5fa; border-color:rgba(37,99,235,0.4);">📊 Admin Dashboard</span></a>
+        </div>
+    </div>
+
+    <div class="form-group">
+        <label for="mealSelect">Meal Session</label>
+        <select id="mealSelect">
+            <option value="lunch">Lunch (12:30–2:00 PM)</option>
+            <option value="breakfast">Breakfast (7:30–10:00 AM)</option>
+            <option value="snacks">Evening Snacks (4:30–5:30 PM)</option>
+            <option value="dinner">Dinner (7:30–9:00 PM)</option>
+        </select>
+    </div>
+
+    <input type="file" id="cameraInput" accept="image/*" capture="environment" style="display:none;">
+
+    <button type="button" class="btn-snap" onclick="document.getElementById('cameraInput').click()">
+        📷 Snap Photo with Phone Camera
+    </button>
+
+    <div class="camera-box" onclick="document.getElementById('cameraInput').click()" id="uploadBox">
+        <div style="font-size: 2.2rem; margin-bottom:0.4rem;">📱</div>
+        <div style="font-weight: 700; color:#f8fafc;">Tap here or button above to take photo</div>
+        <div style="font-size: 0.85rem; color:#94a3b8; margin-top:0.3rem;">Captures plate return tray directly</div>
+    </div>
+
+    <img id="previewImg" alt="Tray Preview">
+
+    <button type="button" class="btn-detect" id="detectBtn" style="display:none;" onclick="runDetection()">
+        🔍 Detect Food & Estimate Leftovers
+    </button>
+
+    <div class="spinner" id="spinner">
+        ⏳ Analyzing plate return with YOLOv8...
+    </div>
+
+    <div class="results-card" id="resultsCard">
+        <h3 style="color:#ffffff; font-size:1.1rem; font-weight:800; margin-bottom:0.6rem;">Detection Results</h3>
+        
+        <img id="annotatedImg" alt="Annotated Detection">
+
+        <div id="dishList" style="margin-top:1rem;"></div>
+
+        <div style="margin-top:1rem; padding-top:0.8rem; border-top:2px solid #334155; display:flex; justify-content:space-between; align-items:center;">
+            <span style="font-weight:700; color:#94a3b8;">Total Estimated Leftover:</span>
+            <span id="totalWeight" style="font-size:1.3rem; font-weight:800; color:#10b981;">0g</span>
+        </div>
+
+        <button type="button" class="btn-save" onclick="saveWasteRecord()">
+            💾 Save to Hostel 1 Waste Logs
+        </button>
+    </div>
+
+    <div class="toast" id="toast">
+        ✅ Saved waste records to Hostel 1 database!
+    </div>
+</div>
+
+<script>
+    const API_BASE = window.location.protocol.startsWith('http') && window.location.port !== '8501'
+        ? `${window.location.origin}/api`
+        : 'http://127.0.0.1:8000/api';
+
+    let selectedFile = null;
+    let lastDetectionResult = null;
+
+    // Auto-select meal session based on local time
+    (function autoDetectMeal() {
+        const hour = new Date().getHours() + new Date().getMinutes() / 60.0;
+        const sel = document.getElementById('mealSelect');
+        if (hour >= 7.0 && hour < 11.5) sel.value = "breakfast";
+        else if (hour >= 11.5 && hour < 15.5) sel.value = "lunch";
+        else if (hour >= 15.5 && hour < 18.5) sel.value = "snacks";
+        else sel.value = "dinner";
+    })();
+
+    // Handle camera file selection
+    document.getElementById('cameraInput').addEventListener('change', (e) => {
+        if (e.target.files && e.target.files[0]) {
+            selectedFile = e.target.files[0];
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const img = document.getElementById('previewImg');
+                img.src = event.target.result;
+                img.style.display = 'block';
+                document.getElementById('uploadBox').style.display = 'none';
+                document.getElementById('detectBtn').style.display = 'block';
+                document.getElementById('resultsCard').style.display = 'none';
+                document.getElementById('toast').style.display = 'none';
+            };
+            reader.readAsDataURL(selectedFile);
+        }
+    });
+
+    async function runDetection() {
+        if (!selectedFile) {
+            alert('Please snap a photo first.');
+            return;
+        }
+
+        const meal = document.getElementById('mealSelect').value;
+        const spinner = document.getElementById('spinner');
+        const detectBtn = document.getElementById('detectBtn');
+        const resultsCard = document.getElementById('resultsCard');
+
+        spinner.style.display = 'block';
+        detectBtn.style.display = 'none';
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        try {
+            const res = await fetch(`${API_BASE}/detect?site_id=1&meal=${meal}&save_record=false`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                lastDetectionResult = await res.json();
+                renderResults(lastDetectionResult);
+            } else {
+                alert('Detection failed. Please try again.');
+            }
+        } catch (err) {
+            alert('Could not connect to FoodFlow detection server.');
+        } finally {
+            spinner.style.display = 'none';
+            detectBtn.style.display = 'block';
+        }
+    }
+
+    function renderResults(data) {
+        const resultsCard = document.getElementById('resultsCard');
+        const annotatedImg = document.getElementById('annotatedImg');
+        const dishList = document.getElementById('dishList');
+        const totalWeight = document.getElementById('totalWeight');
+
+        if (data.annotated_image_b64) {
+            annotatedImg.src = data.annotated_image_b64;
+            annotatedImg.style.display = 'block';
+        }
+
+        dishList.innerHTML = '';
+        if (data.detections && data.detections.length > 0) {
+            data.detections.forEach(d => {
+                const row = document.createElement('div');
+                row.className = 'dish-row';
+                row.innerHTML = `
+                    <div>
+                        <div class="dish-name">${d.dish_name}</div>
+                        <div class="dish-conf">Confidence: ${(d.confidence * 100).toFixed(0)}%</div>
+                    </div>
+                    <div class="dish-weight">${d.estimated_wasted_grams}g</div>
+                `;
+                dishList.appendChild(row);
+            });
+        } else {
+            dishList.innerHTML = '<div style="color:#cbd5e1; text-align:center; padding:1rem;">No dishes identified in this frame.</div>';
+        }
+
+        const totalGrams = data.total_estimated_wasted_grams || 0;
+        totalWeight.innerText = `${totalGrams}g (${(totalGrams/1000).toFixed(2)} kg)`;
+        resultsCard.style.display = 'block';
+    }
+
+    async function saveWasteRecord() {
+        if (!selectedFile) return;
+
+        const meal = document.getElementById('mealSelect').value;
+        const toast = document.getElementById('toast');
+
+        const formData = new FormData();
+        formData.append('file', selectedFile);
+
+        try {
+            const res = await fetch(`${API_BASE}/detect?site_id=1&meal=${meal}&save_record=true`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (res.ok) {
+                const data = await res.json();
+                toast.innerText = `✅ Successfully saved ${data.saved_records.length} waste record(s) to Hostel 1 database!`;
+                toast.style.display = 'block';
+            } else {
+                alert('Save failed.');
+            }
+        } catch (err) {
+            alert('Error connecting to FoodFlow server.');
+        }
+    }
+</script>
+
+</body>
+</html>

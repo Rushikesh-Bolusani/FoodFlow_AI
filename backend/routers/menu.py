@@ -96,12 +96,40 @@ def get_today_menu(
         # Fallback if no menu plan exists for today: return active dishes
         dish_query = db.query(models.Dish).filter(models.Dish.is_active.is_(True))
         if meal == "breakfast":
-            dish_query = dish_query.filter(models.Dish.category == "breakfast")
+            dish_query = dish_query.filter(models.Dish.category.in_(["breakfast", "snack", "side"]))
+        elif meal == "snacks":
+            dish_query = dish_query.filter(models.Dish.category == "snack")
         elif meal in ("lunch", "dinner"):
-            dish_query = dish_query.filter(models.Dish.category.in_(["main", "side", "dessert", "non-veg"]))
+            dish_query = dish_query.filter(
+                models.Dish.category.in_(["main", "side", "dessert", "non-veg"])
+            )
         dishes = dish_query.all()
 
     return dishes
+
+
+@router.get("/menu/tomorrow", response_model=list[schemas.MenuPlanOut])
+def get_tomorrow_menu(
+    site_id: int | None = None,
+    db: Session = Depends(get_db),
+):
+    """Dishes scheduled for tomorrow — the recommendation engine's menu input."""
+    tomorrow_dow = (date.today().weekday() + 1) % 7
+    query = db.query(models.MenuPlan).filter(
+        models.MenuPlan.day_of_week == tomorrow_dow,
+        models.MenuPlan.is_active.is_(True),
+    )
+    if site_id is not None:
+        query = query.filter(models.MenuPlan.site_id == site_id)
+    items = query.all()
+    output = []
+    for m in items:
+        out = schemas.MenuPlanOut.model_validate(m)
+        out.site_name = m.site.name if m.site else ""
+        out.dish_name = m.dish.name if m.dish else ""
+        out.category = m.dish.category if m.dish else ""
+        output.append(out)
+    return output
 
 
 # ---------- Calendar Events ----------

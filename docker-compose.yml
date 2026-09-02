@@ -1,0 +1,14 @@
+services:
+  foodflow:
+    build: .
+    ports:
+      - "8501:8501"
+      - "8000:8000"
+    environment:
+      PORT: "8501"
+      FOODFLOW_API_URL: http://127.0.0.1:8000/api
+    volumes:
+      - foodflow-data:/app/data
+
+volumes:
+  foodflow-data:

@@ -126,16 +126,23 @@ def get_recommendations(site_id: int | None = None, db: Session = Depends(get_db
                 )
             )
 
-    # Fallback suggestion if list is empty
+    # If no high waste dish triggered, return dynamic general tip for the active site
     if not recommendations:
+        active_site_name = "Hostel 1"
+        if site_id and (st := db.get(models.Site, site_id)):
+            active_site_name = st.name
+
         recommendations.append(
             schemas.RecommendationOut(
                 category="portion",
                 dish_name="Steamed Rice",
-                site_name="Main Cafeteria",
-                title="Optimize Rice Serving Scoop Size",
-                suggestion="Rice accounts for 35% of total plate waste. Implement a 150g standard ladle.",
-                expected_savings_kg=12.5,
+                site_name=active_site_name,
+                title=f"Monitor portion sizes at {active_site_name}",
+                suggestion=(
+                    f"No urgent waste spikes detected for {active_site_name} in recent logs. "
+                    "Maintain standard scoop sizes and log plate returns after each meal session."
+                ),
+                expected_savings_kg=5.0,
                 priority="low",
             )
         )

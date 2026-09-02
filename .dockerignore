@@ -1,0 +1,8 @@
+venv/
+.git/
+dataset/
+data/
+!runs/detect/train-south-indian/weights/best.pt
+!yolov8n.pt
+__pycache__/
+*.pyc

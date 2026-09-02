@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: foodflow-ai
+    runtime: docker
+    plan: free
+    healthCheckPath: /_stcore/health
+    envVars:
+      - key: PORT
+        value: 8501
+      - key: FOODFLOW_API_URL
+        value: http://127.0.0.1:8000/api

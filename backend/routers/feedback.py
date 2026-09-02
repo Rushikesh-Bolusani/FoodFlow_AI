@@ -27,6 +27,7 @@ def create_feedback(payload: schemas.FeedbackIn, db: Session = Depends(get_db)):
         meal=payload.meal,
         dish_id=payload.dish_id,
         reasons=payload.reasons,
+        rating=payload.rating,
         comment=payload.comment,
     )
     db.add(fb)
@@ -75,6 +76,7 @@ def get_feedback_stats(site_id: int | None = None, db: Session = Depends(get_db)
 
     records = query.all()
     counts = {}
+    ratings = [r.rating for r in records if r.rating]
 
     for r in records:
         for reason in r.reasons:
@@ -89,7 +91,11 @@ def get_feedback_stats(site_id: int | None = None, db: Session = Depends(get_db)
         for k, v in sorted(counts.items(), key=lambda x: x[1], reverse=True)
     ]
 
+    avg_rating = round(sum(ratings) / len(ratings), 1) if ratings else None
+
     return {
         "total_responses": len(records),
+        "average_rating": avg_rating,
+        "rated_responses": len(ratings),
         "reasons_breakdown": formatted,
     }

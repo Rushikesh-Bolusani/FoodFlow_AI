@@ -6,13 +6,17 @@ Then open http://127.0.0.1:8000/docs
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 
 from backend import models
-from backend.database import engine
+from backend.database import engine, migrate_sqlite
 from backend.routers import (
     benchmarks,
+    detection,
     feedback,
     forecast,
     impact,
@@ -26,6 +30,7 @@ from backend.routers import (
 async def lifespan(app: FastAPI):
     # create_all only adds missing tables; it never alters existing ones.
     models.Base.metadata.create_all(bind=engine)
+    migrate_sqlite()
     yield
 
 
@@ -50,12 +55,21 @@ app.add_middleware(
 
 # Include API Routers
 app.include_router(waste.router)
+app.include_router(detection.router)
 app.include_router(impact.router)
 app.include_router(benchmarks.router)
 app.include_router(forecast.router)
 app.include_router(feedback.router)
 app.include_router(menu.router)
 app.include_router(recommendations.router)
+
+_FEEDBACK_DIR = Path(__file__).resolve().parents[1] / "feedback_form"
+if _FEEDBACK_DIR.is_dir():
+    app.mount(
+        "/feedback_form",
+        StaticFiles(directory=str(_FEEDBACK_DIR), html=True),
+        name="feedback_form",
+    )
 
 
 @app.get("/")

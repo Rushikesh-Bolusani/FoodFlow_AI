@@ -2,7 +2,7 @@
 
 from pathlib import Path
 
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -17,6 +17,20 @@ engine = create_engine(
 )
 
 SessionLocal = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
+
+
+def migrate_sqlite() -> None:
+    """Add columns that create_all will not alter on an existing SQLite file."""
+    statements = [
+        "ALTER TABLE dishes ADD COLUMN cv_class VARCHAR(60) DEFAULT ''",
+        "ALTER TABLE feedback ADD COLUMN rating INTEGER",
+    ]
+    with engine.begin() as conn:
+        for sql in statements:
+            try:
+                conn.execute(text(sql))
+            except Exception:
+                pass
 
 
 def get_db():

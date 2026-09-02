@@ -58,11 +58,14 @@ def predict_next_day_demand(
         all_dishes = db.query(models.Dish).filter(models.Dish.is_active.is_(True)).all()
         target_pairs = []
         for dish in all_dishes:
-            if dish.category == "breakfast":
+            if dish.category == "snack":
+                target_pairs.append(("snacks", dish))
                 target_pairs.append(("breakfast", dish))
             else:
                 target_pairs.append(("lunch", dish))
                 target_pairs.append(("dinner", dish))
+                if dish.category == "side":
+                    target_pairs.append(("breakfast", dish))
 
     for meal, dish in target_pairs:
         # 1. Estimate headcount
@@ -126,11 +129,38 @@ def predict_next_day_demand(
 
         notes = []
         if calendar_event:
-            notes.append(f"{calendar_event.title} ({impact_pct:+.0%} attendance impact)")
-        if avg_waste_pct > 0.15:
-            notes.append(f"High historical waste ({avg_waste_pct:.0%}) — reduced prep recommendation")
+            notes.append(
+                f"{calendar_event.title} is tomorrow "
+                f"({impact_pct:+.0%} expected diners)."
+            )
 
-        note_str = " | ".join(notes) if notes else "Optimal demand prediction"
+        today_waste = (
+            db.query(models.WasteRecord)
+            .filter(
+                models.WasteRecord.site_id == site_id,
+                models.WasteRecord.dish_id == dish.id,
+                models.WasteRecord.record_date == date.today(),
+            )
+            .all()
+        )
+        if today_waste:
+            today_kg = sum(r.wasted_grams for r in today_waste) / 1000.0
+            notes.append(
+                f"Today {today_kg:.1f} kg of {dish.name} came back — "
+                "cook only what tomorrow's menu needs, with a small safety margin."
+            )
+        elif avg_waste_pct > 0.15:
+            notes.append(
+                f"This dish usually comes back at {avg_waste_pct:.0%} leftover. "
+                "We trimmed tomorrow's cook quantity."
+            )
+        if not notes:
+            notes.append(
+                "No special event tomorrow. Quantity follows recent attendance "
+                "and leftover history for this dish only."
+            )
+
+        note_str = " ".join(notes)
 
         forecast_items.append(
             schemas.ForecastItem(
