@@ -140,13 +140,13 @@ st.sidebar.title("🍱 FoodFlow AI")
 st.sidebar.caption("Hostel 1 Mess Management")
 
 nav_options = [
-    "📊 Today's Leftovers",
-    "📸 AI Food Scanner",
-    "🍳 Tomorrow's Cook Plan",
-    "💰 Nutrition & Cost Impact",
-    "🏆 Kitchen Benchmarks",
-    "📅 Weekly Menu & Calendar",
-    "📱 Diner QR Feedback",
+    "📊 Leftover Waste Tracker",
+    "📸 AI Plate Return Scanner",
+    "🍳 Tomorrow's Cooking Quantities",
+    "💰 Financial & Carbon Impact",
+    "🏆 Mess Waste Benchmarks",
+    "📅 Weekly Menu & Event Schedule",
+    "📱 Diner Feedback & QR Code",
 ]
 
 if "nav_page" not in st.session_state:
@@ -180,10 +180,10 @@ st.sidebar.download_button(
 )
 
 
-# ===== PAGE 1: TODAY'S LEFTOVERS (DEFAULT STARTUP VIEW) =====
-if nav_page == "📊 Today's Leftovers":
-    st.header("What came back today")
-    st.caption(f"{today.strftime('%A, %d %B %Y')} · Dish-wise leftover quantities logged at Hostel 1 plate return.")
+# ===== PAGE 1: LEFTOVER WASTE TRACKER =====
+if nav_page == "📊 Leftover Waste Tracker":
+    st.header("📊 Leftover Waste Tracker")
+    st.caption(f"{today.strftime('%A, %d %B %Y')} · Real-time dish-wise leftover quantities logged at Hostel 1 plate return counter.")
 
     today_waste = fetch_api(
         "waste",
@@ -250,10 +250,10 @@ if nav_page == "📊 Today's Leftovers":
         st.plotly_chart(fig_d, use_container_width=True)
 
 
-# ===== PAGE 2: AI FOOD SCANNER =====
-elif nav_page == "📸 AI Food Scanner":
-    st.header("📸 AI Food Scanner")
-    st.caption("Scan food directly using your phone camera or upload a photo of the food tray at Hostel 1 plate return.")
+# ===== PAGE 2: AI PLATE RETURN SCANNER =====
+elif nav_page == "📸 AI Plate Return Scanner":
+    st.header("📸 AI Plate Return Scanner")
+    st.caption("Scan food directly using your mobile phone camera or upload a photo of the food tray at Hostel 1 plate return.")
 
     col_scan1, col_scan2 = st.columns([1, 1])
 
@@ -374,10 +374,10 @@ elif nav_page == "📸 AI Food Scanner":
             st.info("Upload an image on the left to start detection.")
 
 
-# ===== PAGE 3: TOMORROW'S COOK PLAN =====
-elif nav_page == "🍳 Tomorrow's Cook Plan":
-    st.header("What to cook tomorrow")
-    st.caption(f"{tomorrow.strftime('%A, %d %B %Y')} · Recommended cook quantities per dish based on historical waste & attendance.")
+# ===== PAGE 3: TOMORROW'S COOKING QUANTITIES =====
+elif nav_page == "🍳 Tomorrow's Cooking Quantities":
+    st.header("🍳 Tomorrow's Cooking Quantities")
+    st.caption(f"{tomorrow.strftime('%A, %d %B %Y')} · Recommended cook quantities per dish based on historical waste & expected diner turnout.")
 
     tomorrow_menu = fetch_api("menu/tomorrow", {"site_id": selected_site_id}) or []
     forecast = fetch_api("forecast", {"site_id": selected_site_id, "target_date": tomorrow.isoformat()}) or []
@@ -439,10 +439,10 @@ elif nav_page == "🍳 Tomorrow's Cook Plan":
         st.success("No urgent kitchen actions right now.")
 
 
-# ===== PAGE 4: NUTRITION & COST IMPACT =====
-elif nav_page == "💰 Nutrition & Cost Impact":
-    st.header("What leftover food costs")
-    st.caption("Cumulative nutrition, ingredient value, and environmental impact of leftovers.")
+# ===== PAGE 4: FINANCIAL & CARBON IMPACT =====
+elif nav_page == "💰 Financial & Carbon Impact":
+    st.header("💰 Financial & Carbon Impact")
+    st.caption("Cumulative ingredient value lost (₹), wasted calories, protein lost, and environmental carbon footprint.")
 
     impact = fetch_api("impact", {"site_id": selected_site_id}) or {}
     m1, m2, m3, m4 = st.columns(4)
@@ -455,10 +455,10 @@ elif nav_page == "💰 Nutrition & Cost Impact":
     st.info(f"Those leftover calories could have fed **{meals_eq:,} people** (counting 650 kcal per meal).")
 
 
-# ===== PAGE 5: KITCHEN BENCHMARKS =====
-elif nav_page == "🏆 Kitchen Benchmarks":
-    st.header("Kitchen performance summary")
-    st.caption("Performance metrics tracked for Hostel 1 Mess.")
+# ===== PAGE 5: MESS WASTE BENCHMARKS =====
+elif nav_page == "🏆 Mess Waste Benchmarks":
+    st.header("🏆 Mess Waste Benchmarks")
+    st.caption("Kitchen waste performance metrics and grams leftover per diner.")
 
     benchmarks = fetch_api("benchmarks") or []
     if benchmarks:
@@ -495,9 +495,9 @@ elif nav_page == "🏆 Kitchen Benchmarks":
         st.info("No benchmark metrics available.")
 
 
-# ===== PAGE 6: WEEKLY MENU & CALENDAR =====
-elif nav_page == "📅 Weekly Menu & Calendar":
-    st.header("Weekly schedule & calendar events")
+# ===== PAGE 6: WEEKLY MENU & EVENT SCHEDULE =====
+elif nav_page == "📅 Weekly Menu & Event Schedule":
+    st.header("📅 Weekly Menu & Event Schedule")
     col_p1, col_p2 = st.columns([3, 2])
 
     with col_p1:
@@ -557,10 +557,10 @@ elif nav_page == "📅 Weekly Menu & Calendar":
             st.plotly_chart(fig_fb, use_container_width=True)
 
 
-# ===== PAGE 7: DINER QR FEEDBACK =====
-elif nav_page == "📱 Diner QR Feedback":
-    st.header("Diner feedback & QR code standee")
-    st.caption("Manage Hostel 1 plate return QR codes and review diner comments.")
+# ===== PAGE 7: DINER FEEDBACK & QR CODE =====
+elif nav_page == "📱 Diner Feedback & QR Code":
+    st.header("📱 Diner Feedback & QR Code")
+    st.caption("Manage Hostel 1 plate return QR codes and review diner feedback comments.")
 
     c_qr1, c_qr2 = st.columns([1, 1])
     with c_qr1:
