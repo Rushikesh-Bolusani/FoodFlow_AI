@@ -10,12 +10,9 @@ numpy==2.4.4
 plotly==6.7.0
 streamlit==1.57.0
 altair==6.1.0
-pyarrow==24.0.0
 starlette==1.0.0
 anyio==4.13.0
 httpx==0.28.1
-h11==0.16.0
-click==8.3.3
 qrcode==8.0
 pillow==10.4.0
 ultralytics==8.4.135
