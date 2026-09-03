@@ -493,7 +493,7 @@ def start_backend_if_needed():
         from backend.main import app as fastapi_app
 
         def _run_server():
-            uvicorn.run(fastapi_app, host="127.0.0.1", port=8000, log_level="error")
+            uvicorn.run(fastapi_app, host="0.0.0.0", port=8000, log_level="error")
 
         t = threading.Thread(target=_run_server, daemon=True)
         t.start()
@@ -1372,7 +1372,9 @@ elif nav_page == "Weekly Menu & Event Schedule":
         events = fetch_api("calendar") or []
         if events:
             df_e = pd.DataFrame(events)
-            df_e["attendance_impact_pct"] = df_e["attendance_impact_pct"].apply(lambda p: f"{p:+d}%")
+            df_e["attendance_impact_pct"] = df_e["attendance_impact_pct"].apply(
+                lambda p: f"{int(p):+d}%" if pd.notna(p) and not isinstance(p, str) else str(p)
+            )
             render_styled_table(
                 df_e[["event_date", "title", "event_type", "attendance_impact_pct", "notes"]].rename(
                     columns={
