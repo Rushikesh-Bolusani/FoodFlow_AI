@@ -57,9 +57,8 @@ def get_yolo_model() -> YOLO:
             print(f"South Indian model not found. Falling back to base YOLO from {BASE_WEIGHTS}")
             _MODEL = YOLO(str(BASE_WEIGHTS))
         else:
-            raise FileNotFoundError(
-                f"No YOLO model weights found at {SOUTH_INDIAN_WEIGHTS} or {BASE_WEIGHTS}."
-            )
+            print("Local weights not found. Falling back to downloading standard yolov8n weights...")
+            _MODEL = YOLO("yolov8n.pt")
     return _MODEL
 
 

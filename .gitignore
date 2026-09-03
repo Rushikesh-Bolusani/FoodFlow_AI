@@ -4,8 +4,21 @@ __pycache__/
 *.py[cod]
 .vscode/
 .idea/
-runs/
+# Training runs (ignore all except the production South Indian weights)
+runs/*
+!runs/detect/
+runs/detect/*
+!runs/detect/train-south-indian/
+runs/detect/train-south-indian/*
+!runs/detect/train-south-indian/weights/
+runs/detect/train-south-indian/weights/*
+!runs/detect/train-south-indian/weights/best.pt
+
+# Ignore .pt model files except production weights needed for CV detection
 *.pt
+!yolov8n.pt
+!runs/detect/train-south-indian/weights/best.pt
+
 *.log
 dataset/
-data/
+data/
