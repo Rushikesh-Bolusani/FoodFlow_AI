@@ -47,7 +47,15 @@ _MODEL: YOLO | None = None
 
 
 def get_yolo_model() -> YOLO:
-    """Lazy load the fine-tuned YOLO model checkpoint."""
+    """Lazy load the fine-tuned YOLO model checkpoint.
+
+    ``*.pt`` and ``runs/`` are gitignored (they're large binaries), so a fresh
+    clone of this repo will not have the fine-tuned South Indian weights or
+    even the base ``yolov8n.pt`` checkpoint on disk. Fall back to Ultralytics'
+    auto-download of the stock ``yolov8n.pt`` instead of failing outright, so
+    /api/detect still works (with generic COCO classes) until the real
+    fine-tuned weights are trained/placed locally.
+    """
     global _MODEL
     if _MODEL is None:
         if SOUTH_INDIAN_WEIGHTS.is_file():
@@ -57,9 +65,23 @@ def get_yolo_model() -> YOLO:
             print(f"South Indian model not found. Falling back to base YOLO from {BASE_WEIGHTS}")
             _MODEL = YOLO(str(BASE_WEIGHTS))
         else:
-            raise FileNotFoundError(
-                f"No YOLO model weights found at {SOUTH_INDIAN_WEIGHTS} or {BASE_WEIGHTS}."
+            # Neither checkpoint is present on disk (expected on a fresh clone,
+            # since *.pt files are gitignored). Pass the bare model name so
+            # Ultralytics downloads the pretrained weights into its cache
+            # instead of treating this as a missing local file.
+            print(
+                "No local YOLO weights found (South Indian or base). "
+                "Downloading pretrained 'yolov8n.pt' from Ultralytics instead."
             )
+            try:
+                _MODEL = YOLO(BASE_WEIGHTS.name)
+            except Exception as err:
+                raise FileNotFoundError(
+                    f"No YOLO model weights found at {SOUTH_INDIAN_WEIGHTS} or "
+                    f"{BASE_WEIGHTS}, and auto-download of '{BASE_WEIGHTS.name}' "
+                    f"failed ({err}). Check your network connection, or place a "
+                    f"trained best.pt at {SOUTH_INDIAN_WEIGHTS}."
+                ) from err
     return _MODEL
 
 

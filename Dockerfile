@@ -28,8 +28,13 @@ COPY dashboard ./dashboard
 COPY forecasting ./forecasting
 COPY feedback_form ./feedback_form
 COPY scripts ./scripts
-COPY runs ./runs
-COPY yolov8n.pt ./yolov8n.pt
+
+# NOTE: fine-tuned weights (runs/detect/train-south-indian/weights/best.pt) and
+# the base yolov8n.pt checkpoint are gitignored (*.pt, runs/) since they're
+# large binaries. They are intentionally NOT copied here — if you have a
+# trained best.pt, mount it or COPY it in a local override. Otherwise the app
+# auto-downloads the stock yolov8n.pt at runtime on first detection request
+# (see backend/services/detection.py::get_yolo_model).
 
 # Ensure startup scripts are executable
 RUN chmod +x scripts/start.sh
