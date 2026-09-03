@@ -1053,6 +1053,90 @@ elif nav_page == "AI Plate Return Scanner":
         )
         st.markdown("</div>", unsafe_allow_html=True)
 
+def call_detection_service(
+    file_name: str,
+    file_bytes: bytes,
+    file_type: str,
+    site_id: int,
+    meal: str,
+    save_record: bool = False,
+) -> dict[str, Any]:
+    """Execute plate detection with intelligent dispatch and automatic in-process fallback."""
+    is_external = API_BASE and ("127.0.0.1" not in API_BASE) and ("localhost" not in API_BASE)
+
+    # 1. Try external API if explicitly configured (e.g. Render/Cloud deployment)
+    if is_external:
+        files = {"file": (file_name, file_bytes, file_type)}
+        params = {"site_id": site_id, "meal": meal, "save_record": "true" if save_record else "false"}
+        res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
+        if res.status_code == 200:
+            return res.json()
+        raise RuntimeError(f"API Error ({res.status_code}): {res.text}")
+
+    # 2. In Streamlit Cloud / local environment, execute in-process directly.
+    # This guarantees execution of the latest code without relying on background thread reload state.
+    try:
+        from backend.services.detection import process_plate_image
+        from backend.database import SessionLocal
+        import backend.models as models
+
+        with SessionLocal() as db:
+            site = db.get(models.Site, site_id) or db.query(models.Site).first()
+            results = process_plate_image(file_bytes, db=db)
+            created_records = []
+            if save_record and results.get("detections"):
+                today_date = date.today()
+                for det in results["detections"]:
+                    dish_id = det.get("dish_id")
+                    if not dish_id:
+                        dish_name = det.get("dish_name")
+                        existing = (
+                            db.query(models.Dish)
+                            .filter(models.Dish.name.ilike(f"%{dish_name}%"))
+                            .first()
+                        )
+                        if existing:
+                            dish_id = existing.id
+                    if dish_id:
+                        rec = models.WasteRecord(
+                            site_id=site_id,
+                            dish_id=dish_id,
+                            meal=meal,
+                            record_date=today_date,
+                            wasted_grams=det["estimated_wasted_grams"],
+                            prep_grams=det["estimated_wasted_grams"] * 4.0,
+                            source="cv_camera",
+                        )
+                        db.add(rec)
+                        db.flush()
+                        created_records.append(
+                            {
+                                "record_id": rec.id,
+                                "dish_id": dish_id,
+                                "dish_name": det["dish_name"],
+                                "wasted_grams": rec.wasted_grams,
+                            }
+                        )
+                db.commit()
+
+            results["saved_records"] = created_records
+            results["site_id"] = site_id
+            results["site_name"] = site.name if site else "Cafeteria"
+            results["meal"] = meal
+            return results
+    except Exception as in_proc_err:
+        # Fallback to HTTP loopback if in-process encountered an issue
+        try:
+            files = {"file": (file_name, file_bytes, file_type)}
+            params = {"site_id": site_id, "meal": meal, "save_record": "true" if save_record else "false"}
+            res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
+            if res.status_code == 200:
+                return res.json()
+        except Exception:
+            pass
+        raise in_proc_err
+
+
     with col_scan2:
         if input_bytes is not None:
             last_bytes = st.session_state.get("last_processed_bytes")
@@ -1063,23 +1147,16 @@ elif nav_page == "AI Plate Return Scanner":
             if should_run:
                 with st.spinner("Analyzing tray image with fine-tuned YOLOv8..."):
                     try:
-                        files = {"file": (input_name, input_bytes, input_type)}
-                        params = {
-                            "site_id": selected_site_id,
-                            "meal": scan_meal,
-                            "save_record": "false",
-                        }
-                        res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
-                        if res.status_code == 200:
-                            st.session_state["last_detection"] = res.json()
-                            st.session_state["uploaded_file_bytes"] = input_bytes
-                            st.session_state["uploaded_file_name"] = input_name
-                            st.session_state["uploaded_file_type"] = input_type
-                            st.session_state["last_processed_bytes"] = input_bytes
-                        else:
-                            st.error(f"Detection failed: {res.text}")
+                        det_res = call_detection_service(
+                            input_name, input_bytes, input_type, selected_site_id, scan_meal, save_record=False
+                        )
+                        st.session_state["last_detection"] = det_res
+                        st.session_state["uploaded_file_bytes"] = input_bytes
+                        st.session_state["uploaded_file_name"] = input_name
+                        st.session_state["uploaded_file_type"] = input_type
+                        st.session_state["last_processed_bytes"] = input_bytes
                     except Exception as err:
-                        st.error(f"Could not connect to detection service: {err}")
+                        st.error(f"Detection failed: {err}")
 
             detection = st.session_state.get("last_detection")
             if detection:
@@ -1133,26 +1210,17 @@ elif nav_page == "AI Plate Return Scanner":
                     if st.button("Save Waste Records to Database", use_container_width=True):
                         with st.spinner("Saving records to system database..."):
                             try:
-                                files = {
-                                    "file": (
-                                        st.session_state.get("uploaded_file_name", "tray.jpg"),
-                                        st.session_state.get("uploaded_file_bytes"),
-                                        st.session_state.get("uploaded_file_type", "image/jpeg"),
-                                    )
-                                }
-                                params = {
-                                    "site_id": selected_site_id,
-                                    "meal": scan_meal,
-                                    "save_record": "true",
-                                }
-                                save_res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
-                                if save_res.status_code == 200:
-                                    save_data = save_res.json()
-                                    saved_count = len(save_data.get("saved_records", []))
-                                    st.success(f"Successfully saved {saved_count} waste record(s) for {selected_site_name} ({scan_meal.capitalize()})!")
-                                    st.cache_data.clear()
-                                else:
-                                    st.error(f"Failed to save records: {save_res.text}")
+                                save_data = call_detection_service(
+                                    st.session_state.get("uploaded_file_name", "tray.jpg"),
+                                    st.session_state.get("uploaded_file_bytes"),
+                                    st.session_state.get("uploaded_file_type", "image/jpeg"),
+                                    selected_site_id,
+                                    scan_meal,
+                                    save_record=True,
+                                )
+                                saved_count = len(save_data.get("saved_records", []))
+                                st.success(f"Successfully saved {saved_count} waste record(s) for {selected_site_name} ({scan_meal.capitalize()})!")
+                                st.cache_data.clear()
                             except Exception as save_err:
                                 st.error(f"Error saving records: {save_err}")
                 else:
