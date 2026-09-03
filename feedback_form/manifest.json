@@ -2,11 +2,11 @@
   "name": "FoodFlow AI — Hostel 1 Mess",
   "short_name": "FoodFlow AI",
   "description": "Institutional Food Waste Intelligence & Diner Feedback System",
-  "start_url": "/feedback_form/scan.html",
+  "start_url": "index.html?site_id=1",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0f172a",
-  "theme_color": "#10b981",
+  "background_color": "#F8F9FA",
+  "theme_color": "#1E3A5F",
   "icons": [
     {
       "src": "https://api.iconify.design/emojione-v1:bento-box.svg",

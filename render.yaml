@@ -3,6 +3,7 @@ services:
     name: foodflow-ai
     runtime: docker
     plan: free
+    # Health check proxied via Nginx to Streamlit (/_stcore/health) or FastAPI (/health)
     healthCheckPath: /_stcore/health
     envVars:
       - key: PORT

@@ -1,6 +1,8 @@
 services:
   foodflow:
     build: .
+    # Local dev bypasses Nginx and runs FastAPI (8000) & Streamlit (8501) directly
+    command: ["python", "scripts/start_app.py"]
     ports:
       - "8501:8501"
       - "8000:8000"

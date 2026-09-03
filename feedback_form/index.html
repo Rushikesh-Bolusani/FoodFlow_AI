@@ -2,287 +2,594 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>FoodFlow AI — Diner Plate Feedback</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>FoodFlow AI — Diner Plate Return Feedback</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#10b981">
+    <meta name="theme-color" content="#1E3A5F">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
     <meta name="apple-mobile-web-app-title" content="FoodFlow AI">
     <style>
         :root {
-            --bg-color: #0f172a;
-            --card-bg: #1e293b;
-            --accent: #10b981;
-            --accent-hover: #059669;
-            --text-main: #f8fafc;
-            --text-sub: #94a3b8;
-            --border-color: #334155;
-            --chip-bg: #334155;
-            --chip-selected: #059669;
+            --bg-page: #F8F9FA;
+            --card-bg: #FFFFFF;
+            --navy-primary: #1E3A5F;
+            --navy-hover: #152943;
+            --teal-accent: #0F766E;
+            --teal-light: #E6F4F1;
+            --red-error: #C0392B;
+            --red-light: #FEF2F2;
+            --red-border: #FECACA;
+            --text-primary: #1E293B;
+            --text-body: #374151;
+            --text-muted: #64748B;
+            --border-color: #E5E7EB;
+            --border-focus: #1E3A5F;
+            --card-radius: 12px;
+            --button-radius: 10px;
+            --shadow-subtle: 0 1px 3px rgba(0, 0, 0, 0.04), 0 8px 20px -4px rgba(0, 0, 0, 0.04);
         }
 
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
-            font-family: 'Inter', system-ui, -apple-system, sans-serif;
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
 
         body {
-            background-color: var(--bg-color);
-            color: var(--text-main);
+            background-color: var(--bg-page);
+            color: var(--text-primary);
             display: flex;
             justify-content: center;
-            align-items: center;
+            align-items: flex-start;
             min-height: 100vh;
-            padding: 1rem;
+            padding: 1.25rem 1rem 2.5rem 1rem;
         }
 
         .container {
             width: 100%;
-            max-width: 480px;
-            background-color: var(--card-bg);
-            border-radius: 20px;
-            padding: 2rem 1.5rem;
-            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-color);
+            max-width: 460px;
+            margin: 0 auto;
         }
 
-        .header {
-            text-align: center;
-            margin-bottom: 1.8rem;
+        /* Top Brand Header matching Dashboard Sidebar */
+        .brand-header {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            margin-bottom: 1.25rem;
+            padding: 0.25rem 0.25rem;
         }
 
-        .header h1 {
-            font-size: 1.75rem;
-            font-weight: 800;
-            color: #ffffff;
-            margin-bottom: 0.5rem;
+        .brand-logo {
+            background: var(--navy-primary);
+            color: #FFFFFF;
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 18px;
             letter-spacing: -0.02em;
+            flex-shrink: 0;
         }
 
-        .header p {
-            color: #e2e8f0;
-            font-size: 0.98rem;
-            line-height: 1.5;
+        .brand-info {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            line-height: 1.2;
+        }
+
+        .brand-subtitle {
+            font-size: 0.8rem;
+            color: var(--text-muted);
             font-weight: 500;
         }
 
-        .form-group {
+        /* Connection / Network Error Banner */
+        .alert-banner {
+            display: none;
+            background-color: var(--red-light);
+            border: 1px solid var(--red-border);
+            color: #991B1B;
+            border-radius: var(--button-radius);
+            padding: 0.9rem 1rem;
+            font-size: 0.875rem;
+            line-height: 1.4;
+            margin-bottom: 1.25rem;
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+        }
+
+        .alert-banner-header {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .alert-retry-btn {
+            background: transparent;
+            border: 1px solid #991B1B;
+            color: #991B1B;
+            padding: 0.35rem 0.75rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            border-radius: 6px;
+            margin-top: 0.6rem;
+            cursor: pointer;
+        }
+
+        /* Main Form Card */
+        .card {
+            background-color: var(--card-bg);
+            border-radius: var(--card-radius);
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow-subtle);
+            padding: 1.5rem 1.35rem;
+        }
+
+        .card-header {
             margin-bottom: 1.5rem;
+            padding-bottom: 1rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .page-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--navy-primary);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.35rem;
+        }
+
+        .page-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            line-height: 1.45;
+        }
+
+        /* Form Group */
+        .form-group {
+            margin-bottom: 1.25rem;
         }
 
         label {
             display: block;
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: #f1f5f9;
-            margin-bottom: 0.6rem;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-        }
-
-        select, input, textarea {
-            width: 100%;
-            padding: 0.9rem 1.1rem;
-            border-radius: 12px;
-            background-color: #0f172a;
-            border: 2px solid #475569;
-            color: #ffffff;
-            font-size: 1.05rem;
+            font-size: 0.875rem;
             font-weight: 600;
+            color: var(--text-body);
+            margin-bottom: 0.45rem;
+            letter-spacing: -0.01em;
+        }
+
+        .input-hint {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 400;
+            margin-top: 0.25rem;
+        }
+
+        /* Dropdowns & Text inputs */
+        select, textarea {
+            width: 100%;
+            padding: 0.75rem 0.95rem;
+            border-radius: var(--button-radius);
+            background-color: #FFFFFF;
+            border: 1px solid var(--border-color);
+            color: var(--text-primary);
+            font-size: 0.95rem;
+            font-weight: 500;
             outline: none;
-            transition: all 0.2s ease;
+            transition: border-color 0.15s ease, box-shadow 0.15s ease;
+            min-height: 44px;
         }
 
-        select:focus, textarea:focus, input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.25);
+        select {
+            appearance: none;
+            background-image: url("data:image/svg+xml;utf8,<svg fill='%2364748B' height='20' viewBox='0 0 24 24' width='20' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/></svg>");
+            background-repeat: no-repeat;
+            background-position: right 0.85rem center;
+            background-size: 1.1rem;
+            padding-right: 2.2rem;
         }
 
-        .stars {
+        select:focus, textarea:focus {
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(30, 58, 95, 0.12);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+            line-height: 1.45;
+        }
+
+        /* Rating Buttons / Pills */
+        .rating-group {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.45rem;
+        }
+
+        .rating-btn {
+            background-color: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-height: 48px;
             display: flex;
-            gap: 0.6rem;
-            font-size: 2.2rem;
-        }
-        .star {
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
             cursor: pointer;
-            color: #475569;
             user-select: none;
-            transition: transform 0.15s ease, color 0.15s ease;
-        }
-        .star:hover, .star.on {
-            color: #fbbf24;
-            transform: scale(1.15);
+            transition: all 0.15s ease;
+            padding: 0.35rem 0.15rem;
         }
 
+        .rating-btn .num {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            line-height: 1.1;
+        }
+
+        .rating-btn .label {
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.02em;
+            margin-top: 0.15rem;
+        }
+
+        .rating-btn:hover {
+            border-color: #CBD5E1;
+            background-color: #F8FAFC;
+        }
+
+        .rating-btn.selected {
+            background-color: var(--navy-primary);
+            border-color: var(--navy-primary);
+            box-shadow: 0 2px 6px rgba(30, 58, 95, 0.25);
+        }
+
+        .rating-btn.selected .num,
+        .rating-btn.selected .label {
+            color: #FFFFFF;
+        }
+
+        /* Reasons Selectable Chips */
         .reasons-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
+            gap: 0.55rem;
         }
 
         .reason-chip {
-            background-color: #334155;
-            border: 2px solid #475569;
-            border-radius: 14px;
-            padding: 0.85rem 0.7rem;
-            text-align: center;
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #ffffff;
+            background-color: #FFFFFF;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            min-height: 44px;
+            padding: 0.65rem 0.75rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-body);
             cursor: pointer;
             user-select: none;
-            transition: all 0.2s ease;
+            transition: all 0.15s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            line-height: 1.25;
+        }
+
+        .reason-chip:hover {
+            border-color: #CBD5E1;
+            background-color: #F8FAFC;
+        }
+
+        .reason-chip.selected {
+            background-color: var(--navy-primary);
+            color: #FFFFFF;
+            border-color: var(--navy-primary);
+            font-weight: 600;
+            box-shadow: 0 2px 6px rgba(30, 58, 95, 0.2);
+        }
+
+        /* Primary Submit Button */
+        .btn-submit {
+            width: 100%;
+            min-height: 48px;
+            padding: 0.85rem 1rem;
+            background-color: var(--navy-primary);
+            color: #FFFFFF;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--button-radius);
+            cursor: pointer;
+            transition: background-color 0.15s ease, transform 0.08s ease;
+            margin-top: 0.5rem;
             display: flex;
             align-items: center;
             justify-content: center;
             gap: 0.5rem;
         }
 
-        .reason-chip.selected {
-            background-color: #059669;
-            color: #ffffff;
-            border-color: #10b981;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        .btn-submit:hover {
+            background-color: var(--navy-hover);
         }
 
-        button.btn-submit {
+        .btn-submit:active {
+            transform: scale(0.99);
+        }
+
+        .btn-submit:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+        }
+
+        /* Secondary Outlined Button */
+        .btn-outline {
             width: 100%;
-            padding: 1.1rem;
-            background-color: var(--accent);
-            color: #ffffff;
-            font-size: 1.1rem;
-            font-weight: 700;
-            border: none;
-            border-radius: 14px;
+            min-height: 44px;
+            padding: 0.75rem 1rem;
+            background-color: #FFFFFF;
+            color: var(--navy-primary);
+            border: 1px solid var(--border-color);
+            font-size: 0.9rem;
+            font-weight: 600;
+            border-radius: var(--button-radius);
             cursor: pointer;
-            transition: background-color 0.2s ease, transform 0.1s ease;
-            margin-top: 1rem;
+            transition: all 0.15s ease;
         }
 
-        button.btn-submit:hover {
-            background-color: var(--accent-hover);
+        .btn-outline:hover {
+            background-color: #F8FAFC;
+            border-color: #CBD5E1;
         }
 
-        button.btn-submit:active {
-            transform: scale(0.98);
-        }
-
-        .thank-you {
+        /* Clean Confirmation State */
+        .thank-you-card {
             display: none;
             text-align: center;
-            padding: 2rem 1rem;
+            padding: 1.5rem 0.5rem;
         }
 
-        .thank-you h2 {
-            font-size: 1.6rem;
-            color: var(--accent);
-            margin-bottom: 0.6rem;
+        .success-icon-wrap {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: var(--teal-light);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 1.25rem auto;
         }
 
-        .thank-you p {
-            color: var(--text-sub);
-            font-size: 0.95rem;
+        .success-icon-wrap svg {
+            width: 30px;
+            height: 30px;
+            stroke: var(--teal-accent);
+        }
+
+        .thank-you-title {
+            font-size: 1.35rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            letter-spacing: -0.02em;
+            margin-bottom: 0.5rem;
+        }
+
+        .thank-you-desc {
+            font-size: 0.875rem;
+            color: var(--text-muted);
+            line-height: 1.5;
             margin-bottom: 1.5rem;
+        }
+
+        .summary-badge {
+            display: inline-block;
+            background-color: #F1F5F9;
+            border: 1px solid var(--border-color);
+            border-radius: 20px;
+            padding: 0.35rem 0.85rem;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-body);
+            margin-bottom: 1.75rem;
+        }
+
+        /* Footer Info */
+        .page-footer {
+            margin-top: 1.25rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            line-height: 1.4;
+        }
+
+        .page-footer a {
+            color: var(--navy-primary);
+            text-decoration: none;
+            font-weight: 600;
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div id="formContainer">
-        <div class="header">
-            <h1>🍱 FoodFlow Feedback</h1>
-            <p>Tell us why food was left behind today so we can cook smarter tomorrow.</p>
+    <!-- Top Branding Header -->
+    <header class="brand-header">
+        <div class="brand-logo">F</div>
+        <div class="brand-info">
+            <h1 class="brand-title">FoodFlow AI</h1>
+            <span class="brand-subtitle" id="locationSubtitle">Hostel 1 Mess Feedback</span>
         </div>
+    </header>
 
-        <form id="feedbackForm">
-            <div class="form-group">
-                <label for="siteSelect">Cafeteria / Mess Location</label>
-                <select id="siteSelect" required>
-                    <option value="">Loading locations...</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="mealSelect">Meal</label>
-                <select id="mealSelect" required>
-                    <option value="lunch" selected>Lunch (12:30–2:00 PM)</option>
-                    <option value="breakfast">Breakfast (7:30–10:00 AM)</option>
-                    <option value="snacks">Evening snacks (4:30–5:30 PM)</option>
-                    <option value="dinner">Dinner (7:30–9:00 PM)</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label for="dishSelect">Which dish was left over?</label>
-                <select id="dishSelect">
-                    <option value="">Loading today's menu...</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>How was the meal? (1–5)</label>
-                <div class="stars" id="ratingStars">
-                    <span class="star" data-value="1">★</span>
-                    <span class="star" data-value="2">★</span>
-                    <span class="star" data-value="3">★</span>
-                    <span class="star" data-value="4">★</span>
-                    <span class="star" data-value="5">★</span>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label>Why was food left on the plate? (Select all that apply)</label>
-                <div class="reasons-grid">
-                    <div class="reason-chip" data-reason="portion_too_big">🥣 Portion too big</div>
-                    <div class="reason-chip" data-reason="didnt_like_taste">👅 Didn't like taste</div>
-                    <div class="reason-chip" data-reason="quality_poor">❄️ Not fresh / poor quality</div>
-                    <div class="reason-chip" data-reason="too_spicy">🌶️ Too spicy</div>
-                    <div class="reason-chip" data-reason="not_hungry">😌 Wasn't hungry</div>
-                    <div class="reason-chip" data-reason="other">💭 Other reason</div>
-                </div>
-            </div>
-
-            <div class="form-group">
-                <label for="commentInput">Any extra comments for the chef?</label>
-                <textarea id="commentInput" rows="2" placeholder="Optional comments or suggestions..."></textarea>
-            </div>
-
-            <button type="submit" class="btn-submit">Submit Feedback</button>
-        </form>
+    <!-- Network / Connection Alert Banner -->
+    <div id="connectionError" class="alert-banner">
+        <div class="alert-banner-header">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+            Cannot connect to FoodFlow server
+        </div>
+        <div>Please ensure your phone is connected to the same Wi-Fi network as the kitchen dashboard.</div>
+        <button type="button" class="alert-retry-btn" onclick="retryConnection()">Retry Connection</button>
     </div>
 
-    <div id="thankYouContainer" class="thank-you">
-        <h2>🎉 Thank You!</h2>
-        <p>Your feedback directly influences tomorrow's cooking quantities and recipes.</p>
-        <button class="btn-submit" onclick="resetForm()">Submit Another Response</button>
-    </div>
+    <!-- Main Card Container -->
+    <main class="card">
+        <!-- Input Form Section -->
+        <section id="formSection">
+            <div class="card-header">
+                <h2 class="page-title">Plate Return Feedback</h2>
+                <p class="page-desc">Tell us why food was left behind today so our kitchen can adjust tomorrow's portions and recipes.</p>
+            </div>
+
+            <form id="feedbackForm">
+                <!-- Location Field -->
+                <div class="form-group">
+                    <label for="siteSelect">Cafeteria / Mess Location</label>
+                    <select id="siteSelect" required>
+                        <option value="1">Hostel 1 Mess</option>
+                    </select>
+                </div>
+
+                <!-- Meal Session Field -->
+                <div class="form-group">
+                    <label for="mealSelect">Meal Session</label>
+                    <select id="mealSelect" required>
+                        <option value="lunch">Lunch (12:30–2:00 PM)</option>
+                        <option value="breakfast">Breakfast (7:30–10:00 AM)</option>
+                        <option value="snacks">Evening Snacks (4:30–5:30 PM)</option>
+                        <option value="dinner">Dinner (7:30–9:00 PM)</option>
+                    </select>
+                </div>
+
+                <!-- Dish Selector Field -->
+                <div class="form-group">
+                    <label for="dishSelect">Which dish was left over?</label>
+                    <select id="dishSelect">
+                        <option value="">General meal feedback (All dishes)</option>
+                    </select>
+                    <div class="input-hint">Leave as general or pick a specific dish from today's menu</div>
+                </div>
+
+                <!-- Rating Field -->
+                <div class="form-group">
+                    <label>How was the meal overall?</label>
+                    <div class="rating-group" id="ratingGroup">
+                        <div class="rating-btn" data-value="1">
+                            <span class="num">1</span>
+                            <span class="label">Poor</span>
+                        </div>
+                        <div class="rating-btn" data-value="2">
+                            <span class="num">2</span>
+                            <span class="label">Fair</span>
+                        </div>
+                        <div class="rating-btn" data-value="3">
+                            <span class="num">3</span>
+                            <span class="label">Good</span>
+                        </div>
+                        <div class="rating-btn" data-value="4">
+                            <span class="num">4</span>
+                            <span class="label">V.Good</span>
+                        </div>
+                        <div class="rating-btn" data-value="5">
+                            <span class="num">5</span>
+                            <span class="label">Great</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reasons Multi-Select Chips -->
+                <div class="form-group">
+                    <label>Why was food left on the plate? (Select all that apply)</label>
+                    <div class="reasons-grid">
+                        <div class="reason-chip" data-reason="portion_too_big">Portion too big</div>
+                        <div class="reason-chip" data-reason="too_spicy">Too spicy</div>
+                        <div class="reason-chip" data-reason="cold">Cold food</div>
+                        <div class="reason-chip" data-reason="didnt_like_taste">Taste preference</div>
+                        <div class="reason-chip" data-reason="not_hungry">Not hungry</div>
+                        <div class="reason-chip" data-reason="quality_poor">Quality / Texture</div>
+                    </div>
+                </div>
+
+                <!-- Comment Box -->
+                <div class="form-group">
+                    <label for="commentInput">Chef note (Optional)</label>
+                    <textarea id="commentInput" rows="2" placeholder="Optional comments (e.g., portion size, salt level, temperature)..."></textarea>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn-submit" id="submitBtn">
+                    Submit Feedback
+                </button>
+            </form>
+        </section>
+
+        <!-- Clean Confirmation State -->
+        <section id="thankYouSection" class="thank-you-card">
+            <div class="success-icon-wrap">
+                <svg fill="none" viewBox="0 0 24 24" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                </svg>
+            </div>
+            <h2 class="thank-you-title">Thank you for your feedback!</h2>
+            <p class="thank-you-desc">Your response has been recorded. It directly helps our kitchen chefs reduce food waste and optimize tomorrow's cooking quantities.</p>
+            <div class="summary-badge" id="responseBadge">Hostel 1 Mess • Recorded</div>
+            <button type="button" class="btn-outline" onclick="resetForm()">Submit Another Response</button>
+        </section>
+    </main>
+
+    <footer class="page-footer">
+        FoodFlow AI Waste Intelligence • Takes 15 seconds • No app needed
+    </footer>
 </div>
 
 <script>
-    const API_BASE = window.location.protocol.startsWith('http') && window.location.port !== '8501'
+    const API_BASE = window.location.protocol.startsWith('http')
         ? `${window.location.origin}/api`
         : 'http://127.0.0.1:8000/api';
+
     const selectedReasons = new Set();
     let selectedRating = null;
 
-    document.querySelectorAll('#ratingStars .star').forEach(star => {
-        star.addEventListener('click', () => {
-            selectedRating = parseInt(star.getAttribute('data-value'), 10);
-            document.querySelectorAll('#ratingStars .star').forEach(s => {
-                s.classList.toggle('on', parseInt(s.getAttribute('data-value'), 10) <= selectedRating);
-            });
+    // Handle Rating selection
+    document.querySelectorAll('#ratingGroup .rating-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const val = parseInt(btn.getAttribute('data-value'), 10);
+            if (selectedRating === val) {
+                selectedRating = null;
+                btn.classList.remove('selected');
+            } else {
+                selectedRating = val;
+                document.querySelectorAll('#ratingGroup .rating-btn').forEach(b => {
+                    b.classList.toggle('selected', parseInt(b.getAttribute('data-value'), 10) === selectedRating);
+                });
+            }
         });
     });
 
-    // Toggle multi-select chips
+    // Handle Reason chips toggle
     document.querySelectorAll('.reason-chip').forEach(chip => {
         chip.addEventListener('click', () => {
             const reason = chip.getAttribute('data-reason');
@@ -296,14 +603,17 @@
         });
     });
 
+    // Auto-detect meal session from current time
     function autoDetectMealTime() {
         const urlParams = new URLSearchParams(window.location.search);
         const targetMeal = urlParams.get('meal');
         const mealSel = document.getElementById('mealSelect');
+
         if (targetMeal && mealSel && mealSel.querySelector(`option[value="${targetMeal}"]`)) {
             mealSel.value = targetMeal;
             return;
         }
+
         const now = new Date();
         const hour = now.getHours() + now.getMinutes() / 60.0;
         if (hour >= 7.0 && hour < 11.5) {
@@ -317,14 +627,49 @@
         }
     }
 
-    // Fetch sites
-    async function loadSites() {
-        try {
-            autoDetectMealTime();
-            const urlParams = new URLSearchParams(window.location.search);
-            const targetSiteId = urlParams.get('site_id');
+    function showConnectionError(msg) {
+        const banner = document.getElementById('connectionError');
+        if (banner) {
+            banner.style.display = 'block';
+        }
+    }
 
-            const res = await fetch(`${API_BASE}/sites`);
+    function hideConnectionError() {
+        const banner = document.getElementById('connectionError');
+        if (banner) {
+            banner.style.display = 'none';
+        }
+    }
+
+    async function testHealth() {
+        try {
+            const rootOrigin = window.location.origin;
+            const res = await fetch(`${rootOrigin}/health`, { method: 'GET', cache: 'no-store' });
+            if (res.ok) {
+                hideConnectionError();
+                return true;
+            }
+        } catch (e) {
+            // fallback check /api/health
+            try {
+                const res2 = await fetch(`${API_BASE}/health`, { method: 'GET', cache: 'no-store' });
+                if (res2.ok) {
+                    hideConnectionError();
+                    return true;
+                }
+            } catch (e2) {}
+        }
+        showConnectionError();
+        return false;
+    }
+
+    async function loadSites() {
+        autoDetectMealTime();
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetSiteId = urlParams.get('site_id') || '1';
+
+        try {
+            const res = await fetch(`${API_BASE}/sites`, { cache: 'no-store' });
             if (res.ok) {
                 const sites = await res.json();
                 const sel = document.getElementById('siteSelect');
@@ -332,49 +677,74 @@
                 if (targetSiteId && sel.querySelector(`option[value="${targetSiteId}"]`)) {
                     sel.value = targetSiteId;
                 }
+                const activeName = sel.options[sel.selectedIndex]?.text || 'Hostel 1 Mess';
+                document.getElementById('locationSubtitle').innerText = `${activeName} Feedback`;
+                hideConnectionError();
                 loadTodayMenu();
+                return;
             }
         } catch (e) {
-            console.error('Failed to load sites:', e);
+            showConnectionError();
         }
+        // Fallback options
+        const sel = document.getElementById('siteSelect');
+        sel.innerHTML = '<option value="1">Hostel 1 Mess</option>';
+        loadTodayMenu();
     }
 
-    // Dynamic menu loading for today
     async function loadTodayMenu() {
-        const siteId = document.getElementById('siteSelect').value;
+        const siteId = document.getElementById('siteSelect').value || 1;
         const meal = document.getElementById('mealSelect').value;
         const sel = document.getElementById('dishSelect');
-        sel.innerHTML = '<option value="">Loading today\'s menu...</option>';
+        sel.innerHTML = '<option value="">Loading today\'s dishes...</option>';
 
         try {
-            let url = `${API_BASE}/menu/today?meal=${meal}`;
-            if (siteId) url += `&site_id=${siteId}`;
-
-            const res = await fetch(url);
+            const res = await fetch(`${API_BASE}/menu/today?meal=${meal}&site_id=${siteId}`, { cache: 'no-store' });
             if (res.ok) {
                 const dishes = await res.json();
-                if (dishes.length > 0) {
-                    sel.innerHTML = '<option value="">-- Select Dish (Optional) --</option>' +
-                        dishes.map(d => `<option value="${d.id}">${d.name} (${d.category})</option>`).join('');
+                if (dishes && dishes.length > 0) {
+                    sel.innerHTML = '<option value="">General meal feedback (All dishes)</option>' +
+                        dishes.map(d => `<option value="${d.id}">${d.name} (${d.category || 'Dish'})</option>`).join('');
                 } else {
-                    sel.innerHTML = '<option value="">All Dishes / General Meal</option>';
+                    sel.innerHTML = '<option value="">General meal feedback (All dishes)</option>';
                 }
+                return;
             }
-        } catch (e) {
-            sel.innerHTML = '<option value="">General Meal Feedback</option>';
-        }
+        } catch (e) {}
+        sel.innerHTML = '<option value="">General meal feedback (All dishes)</option>';
     }
 
-    document.getElementById('siteSelect').addEventListener('change', loadTodayMenu);
+    document.getElementById('siteSelect').addEventListener('change', () => {
+        const sel = document.getElementById('siteSelect');
+        const activeName = sel.options[sel.selectedIndex]?.text || 'Hostel Mess';
+        document.getElementById('locationSubtitle').innerText = `${activeName} Feedback`;
+        loadTodayMenu();
+    });
+
     document.getElementById('mealSelect').addEventListener('change', loadTodayMenu);
 
-    // Form submit
+    function retryConnection() {
+        hideConnectionError();
+        testHealth().then(ok => {
+            if (ok) {
+                loadSites();
+            }
+        });
+    }
+
+    // Form submission
     document.getElementById('feedbackForm').addEventListener('submit', async (e) => {
         e.preventDefault();
-        const siteId = parseInt(document.getElementById('siteSelect').value) || null;
+
+        const submitBtn = document.getElementById('submitBtn');
+        const originalText = submitBtn.innerText;
+        submitBtn.innerText = 'Submitting...';
+        submitBtn.disabled = true;
+
+        const siteId = parseInt(document.getElementById('siteSelect').value, 10) || 1;
         const meal = document.getElementById('mealSelect').value;
-        const dishId = parseInt(document.getElementById('dishSelect').value) || null;
-        const comment = document.getElementById('commentInput').value;
+        const dishId = parseInt(document.getElementById('dishSelect').value, 10) || null;
+        const comment = document.getElementById('commentInput').value.trim();
 
         const payload = {
             site_id: siteId,
@@ -393,13 +763,23 @@
             });
 
             if (res.ok) {
-                document.getElementById('formContainer').style.display = 'none';
-                document.getElementById('thankYouContainer').style.display = 'block';
+                const siteName = document.getElementById('siteSelect').options[document.getElementById('siteSelect').selectedIndex]?.text || 'Hostel 1 Mess';
+                const mealName = meal.charAt(0).toUpperCase() + meal.slice(1);
+                document.getElementById('responseBadge').innerText = `${siteName} • ${mealName}`;
+                document.getElementById('formSection').style.display = 'none';
+                document.getElementById('thankYouSection').style.display = 'block';
+                hideConnectionError();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
             } else {
-                alert('Submission failed. Please try again.');
+                showConnectionError();
+                alert('Feedback submission failed. Please try again.');
             }
         } catch (err) {
-            alert('Error connecting to FoodFlow server.');
+            showConnectionError();
+            alert('Cannot connect to FoodFlow server. Please verify you are connected to the same Wi-Fi network.');
+        } finally {
+            submitBtn.innerText = originalText;
+            submitBtn.disabled = false;
         }
     });
 
@@ -407,13 +787,16 @@
         selectedReasons.clear();
         selectedRating = null;
         document.querySelectorAll('.reason-chip').forEach(c => c.classList.remove('selected'));
-        document.querySelectorAll('#ratingStars .star').forEach(s => s.classList.remove('on'));
+        document.querySelectorAll('#ratingGroup .rating-btn').forEach(b => b.classList.remove('selected'));
         document.getElementById('commentInput').value = '';
-        document.getElementById('thankYouContainer').style.display = 'none';
-        document.getElementById('formContainer').style.display = 'block';
+        document.getElementById('thankYouSection').style.display = 'none';
+        document.getElementById('formSection').style.display = 'block';
+        loadTodayMenu();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
-    // Initialize
+    // Startup
+    testHealth();
     loadSites();
 </script>
 

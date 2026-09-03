@@ -789,21 +789,53 @@ nav_page = st.sidebar.radio(
 
 def get_local_wifi_ip():
     """Auto-detect active local Wi-Fi IPv4 address for mobile phone scanning."""
+    for probe_host in [("8.8.8.8", 80), ("1.1.1.1", 80), ("208.67.222.222", 80)]:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.settimeout(0.6)
+            s.connect(probe_host)
+            ip = s.getsockname()[0]
+            s.close()
+            if ip and not ip.startswith("127.") and not ip.startswith("169.254."):
+                return ip
+        except Exception:
+            pass
+
     try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
+        hostname = socket.gethostname()
+        for ip in socket.gethostbyname_ex(hostname)[2]:
+            if (
+                ip.startswith("192.168.")
+                or ip.startswith("10.")
+                or (ip.startswith("172.") and 16 <= int(ip.split(".")[1]) <= 31)
+            ):
+                return ip
     except Exception:
-        return "127.0.0.1"
+        pass
+    return "127.0.0.1"
 
 
 def get_default_deploy_url():
-    env_url = os.environ.get("DEPLOY_URL")
-    if env_url:
-        return env_url
+    # 1. Render deployment detection
+    is_render = os.environ.get("RENDER") == "true" or "RENDER_EXTERNAL_HOSTNAME" in os.environ
+    render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
+    render_url = os.environ.get("RENDER_EXTERNAL_URL")
 
+    if is_render and render_hostname:
+        clean_host = render_hostname.strip().rstrip("/")
+        if not clean_host.startswith("http://") and not clean_host.startswith("https://"):
+            return f"https://{clean_host}"
+        return clean_host
+
+    if is_render and render_url:
+        return render_url.strip().rstrip("/")
+
+    # 2. Explicit environment override
+    env_url = os.environ.get("DEPLOY_URL") or os.environ.get("PUBLIC_URL")
+    if env_url:
+        return env_url.rstrip("/")
+
+    # 3. Streamlit request context headers (e.g. reverse proxy forwarded host)
     try:
         if hasattr(st, "context") and hasattr(st.context, "headers"):
             headers = st.context.headers
@@ -814,6 +846,7 @@ def get_default_deploy_url():
     except Exception:
         pass
 
+    # 4. Local fallback
     local_ip = get_local_wifi_ip()
     return f"http://{local_ip}:8000"
 
