@@ -645,6 +645,90 @@ def fetch_api(endpoint: str, params: dict | None = None):
     return None
 
 
+def call_detection_service(
+    file_name: str,
+    file_bytes: bytes,
+    file_type: str,
+    site_id: int,
+    meal: str,
+    save_record: bool = False,
+) -> dict[str, Any]:
+    """Execute plate detection with intelligent dispatch and automatic in-process fallback."""
+    is_external = API_BASE and ("127.0.0.1" not in API_BASE) and ("localhost" not in API_BASE)
+
+    # 1. Try external API if explicitly configured (e.g. Render/Cloud deployment)
+    if is_external:
+        files = {"file": (file_name, file_bytes, file_type)}
+        params = {"site_id": site_id, "meal": meal, "save_record": "true" if save_record else "false"}
+        res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
+        if res.status_code == 200:
+            return res.json()
+        raise RuntimeError(f"API Error ({res.status_code}): {res.text}")
+
+    # 2. In Streamlit Cloud / local environment, execute in-process directly.
+    # This guarantees execution of the latest code without relying on background thread reload state.
+    try:
+        from backend.services.detection import process_plate_image
+        from backend.database import SessionLocal
+        import backend.models as models
+
+        with SessionLocal() as db:
+            site = db.get(models.Site, site_id) or db.query(models.Site).first()
+            results = process_plate_image(file_bytes, db=db)
+            created_records = []
+            if save_record and results.get("detections"):
+                today_date = date.today()
+                for det in results["detections"]:
+                    dish_id = det.get("dish_id")
+                    if not dish_id:
+                        dish_name = det.get("dish_name")
+                        existing = (
+                            db.query(models.Dish)
+                            .filter(models.Dish.name.ilike(f"%{dish_name}%"))
+                            .first()
+                        )
+                        if existing:
+                            dish_id = existing.id
+                    if dish_id:
+                        rec = models.WasteRecord(
+                            site_id=site_id,
+                            dish_id=dish_id,
+                            meal=meal,
+                            record_date=today_date,
+                            wasted_grams=det["estimated_wasted_grams"],
+                            prep_grams=det["estimated_wasted_grams"] * 4.0,
+                            source="cv_camera",
+                        )
+                        db.add(rec)
+                        db.flush()
+                        created_records.append(
+                            {
+                                "record_id": rec.id,
+                                "dish_id": dish_id,
+                                "dish_name": det["dish_name"],
+                                "wasted_grams": rec.wasted_grams,
+                            }
+                        )
+                db.commit()
+
+            results["saved_records"] = created_records
+            results["site_id"] = site_id
+            results["site_name"] = site.name if site else "Cafeteria"
+            results["meal"] = meal
+            return results
+    except Exception as in_proc_err:
+        # Fallback to HTTP loopback if in-process encountered an issue
+        try:
+            files = {"file": (file_name, file_bytes, file_type)}
+            params = {"site_id": site_id, "meal": meal, "save_record": "true" if save_record else "false"}
+            res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
+            if res.status_code == 200:
+                return res.json()
+        except Exception:
+            pass
+        raise in_proc_err
+
+
 today = date.today()
 tomorrow = today + timedelta(days=1)
 
@@ -1052,90 +1136,6 @@ elif nav_page == "AI Plate Return Scanner":
             unsafe_allow_html=True,
         )
         st.markdown("</div>", unsafe_allow_html=True)
-
-def call_detection_service(
-    file_name: str,
-    file_bytes: bytes,
-    file_type: str,
-    site_id: int,
-    meal: str,
-    save_record: bool = False,
-) -> dict[str, Any]:
-    """Execute plate detection with intelligent dispatch and automatic in-process fallback."""
-    is_external = API_BASE and ("127.0.0.1" not in API_BASE) and ("localhost" not in API_BASE)
-
-    # 1. Try external API if explicitly configured (e.g. Render/Cloud deployment)
-    if is_external:
-        files = {"file": (file_name, file_bytes, file_type)}
-        params = {"site_id": site_id, "meal": meal, "save_record": "true" if save_record else "false"}
-        res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
-        if res.status_code == 200:
-            return res.json()
-        raise RuntimeError(f"API Error ({res.status_code}): {res.text}")
-
-    # 2. In Streamlit Cloud / local environment, execute in-process directly.
-    # This guarantees execution of the latest code without relying on background thread reload state.
-    try:
-        from backend.services.detection import process_plate_image
-        from backend.database import SessionLocal
-        import backend.models as models
-
-        with SessionLocal() as db:
-            site = db.get(models.Site, site_id) or db.query(models.Site).first()
-            results = process_plate_image(file_bytes, db=db)
-            created_records = []
-            if save_record and results.get("detections"):
-                today_date = date.today()
-                for det in results["detections"]:
-                    dish_id = det.get("dish_id")
-                    if not dish_id:
-                        dish_name = det.get("dish_name")
-                        existing = (
-                            db.query(models.Dish)
-                            .filter(models.Dish.name.ilike(f"%{dish_name}%"))
-                            .first()
-                        )
-                        if existing:
-                            dish_id = existing.id
-                    if dish_id:
-                        rec = models.WasteRecord(
-                            site_id=site_id,
-                            dish_id=dish_id,
-                            meal=meal,
-                            record_date=today_date,
-                            wasted_grams=det["estimated_wasted_grams"],
-                            prep_grams=det["estimated_wasted_grams"] * 4.0,
-                            source="cv_camera",
-                        )
-                        db.add(rec)
-                        db.flush()
-                        created_records.append(
-                            {
-                                "record_id": rec.id,
-                                "dish_id": dish_id,
-                                "dish_name": det["dish_name"],
-                                "wasted_grams": rec.wasted_grams,
-                            }
-                        )
-                db.commit()
-
-            results["saved_records"] = created_records
-            results["site_id"] = site_id
-            results["site_name"] = site.name if site else "Cafeteria"
-            results["meal"] = meal
-            return results
-    except Exception as in_proc_err:
-        # Fallback to HTTP loopback if in-process encountered an issue
-        try:
-            files = {"file": (file_name, file_bytes, file_type)}
-            params = {"site_id": site_id, "meal": meal, "save_record": "true" if save_record else "false"}
-            res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
-            if res.status_code == 200:
-                return res.json()
-        except Exception:
-            pass
-        raise in_proc_err
-
 
     with col_scan2:
         if input_bytes is not None:
