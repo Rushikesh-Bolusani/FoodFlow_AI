@@ -8,22 +8,34 @@ from __future__ import annotations
 
 import base64
 import io
+import logging
+import os
 from pathlib import Path
 from typing import Any
 
 import cv2
 import numpy as np
 from PIL import Image
+import requests
 from sqlalchemy.orm import Session
 from ultralytics import YOLO
 
 from backend import models
+
+logger = logging.getLogger("foodflow.detection")
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SOUTH_INDIAN_WEIGHTS = (
     REPO_ROOT / "runs" / "detect" / "train-south-indian" / "weights" / "best.pt"
 )
 BASE_WEIGHTS = REPO_ROOT / "yolov8n.pt"
+
+# Configurable hosted download URL for fine-tuned weights (GitHub Release asset)
+# Can be overridden via environment variables FOODFLOW_YOLO_WEIGHTS_URL or YOLO_WEIGHTS_URL,
+# or via Streamlit secrets (FOODFLOW_YOLO_WEIGHTS_URL / YOLO_WEIGHTS_URL).
+DEFAULT_YOLO_WEIGHTS_URL = (
+    "https://github.com/Rushikesh-Bolusani/FoodFlow_AI/releases/latest/download/best.pt"
+)
 
 # Estimated typical full portion weight (grams) per dish class
 DEFAULT_PORTION_GRAMS = {
@@ -44,23 +56,202 @@ DEFAULT_PORTION_GRAMS = {
 }
 
 _MODEL: YOLO | None = None
+_MODEL_TYPE: str = "unknown"  # "fine-tuned" or "base_fallback"
+_MODEL_INFO: dict[str, Any] = {}
+
+
+def get_model_weights_url() -> str:
+    """Retrieve model weights download URL from environment or Streamlit secrets."""
+    env_url = os.environ.get("FOODFLOW_YOLO_WEIGHTS_URL") or os.environ.get("YOLO_WEIGHTS_URL")
+    if env_url and env_url.strip():
+        return env_url.strip()
+
+    try:
+        import streamlit as st
+
+        if hasattr(st, "secrets"):
+            secret_val = st.secrets.get("FOODFLOW_YOLO_WEIGHTS_URL") or st.secrets.get("YOLO_WEIGHTS_URL")
+            if secret_val and str(secret_val).strip():
+                return str(secret_val).strip()
+    except Exception:
+        pass
+
+    return DEFAULT_YOLO_WEIGHTS_URL
+
+
+def download_model_weights(url: str, dest_path: Path, timeout: int = 120) -> bool:
+    """Download fine-tuned model weights from a direct URL with atomic write and integrity check.
+
+    Args:
+        url: Direct download URL (e.g. GitHub Releases latest asset URL).
+        dest_path: Destination path on disk where best.pt should be placed.
+        timeout: Network timeout in seconds.
+
+    Returns:
+        True if successfully downloaded and saved.
+    """
+    dest_path.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = dest_path.with_suffix(".pt.tmp_download")
+
+    headers = {
+        "User-Agent": "FoodFlow-AI-ModelDownloader/1.0",
+        "Accept": "application/octet-stream, */*",
+    }
+
+    logger.info(f"Downloading fine-tuned YOLO weights from {url} to {dest_path}...")
+    print(f"[INFO] Downloading fine-tuned YOLO weights from {url}...", flush=True)
+
+    try:
+        with requests.get(url, stream=True, allow_redirects=True, timeout=timeout, headers=headers) as resp:
+            if resp.status_code == 404:
+                raise FileNotFoundError(
+                    f"Model asset not found at {url} (HTTP 404). "
+                    "Ensure 'best.pt' is uploaded as a binary asset to your GitHub Release."
+                )
+            if resp.status_code == 403:
+                raise PermissionError(
+                    f"Access forbidden or rate limited at {url} (HTTP 403). "
+                    "Ensure the release or storage bucket is public."
+                )
+            if resp.status_code != 200:
+                raise RuntimeError(
+                    f"HTTP {resp.status_code} ({resp.reason}) received when fetching {url}"
+                )
+
+            total_bytes = 0
+            with open(temp_path, "wb") as f:
+                for chunk in resp.iter_content(chunk_size=128 * 1024):
+                    if chunk:
+                        f.write(chunk)
+                        total_bytes += len(chunk)
+
+        # Integrity check: PyTorch YOLO weights are typically > 1MB
+        if total_bytes < 50_000:
+            if temp_path.is_file():
+                temp_path.unlink()
+            raise ValueError(
+                f"Downloaded file is suspiciously small ({total_bytes} bytes). "
+                "The URL may have returned an HTML error/login page instead of binary .pt weights."
+            )
+
+        # Verify the downloaded file can be loaded as a valid YOLO checkpoint
+        try:
+            test_model = YOLO(str(temp_path))
+            del test_model
+        except Exception as verify_err:
+            if temp_path.is_file():
+                temp_path.unlink()
+            raise ValueError(
+                f"Downloaded file is not a valid YOLOv8 PyTorch checkpoint: {verify_err}"
+            ) from verify_err
+
+        # Atomically replace destination path
+        if dest_path.is_file():
+            dest_path.unlink()
+        temp_path.rename(dest_path)
+        logger.info(
+            f"Successfully downloaded model weights ({total_bytes / (1024 * 1024):.2f} MB) -> {dest_path}"
+        )
+        print(
+            f"[INFO] Successfully downloaded model weights ({total_bytes / (1024 * 1024):.2f} MB) -> {dest_path}",
+            flush=True,
+        )
+        return True
+
+    except Exception as exc:
+        if temp_path.is_file():
+            try:
+                temp_path.unlink()
+            except OSError:
+                pass
+        raise exc
 
 
 def get_yolo_model() -> YOLO:
-    """Lazy load the fine-tuned YOLO model checkpoint."""
-    global _MODEL
-    if _MODEL is None:
-        if SOUTH_INDIAN_WEIGHTS.is_file():
-            print(f"Loading South Indian YOLO model from {SOUTH_INDIAN_WEIGHTS}")
+    """Lazy load the fine-tuned YOLO model checkpoint with auto-download and base fallback."""
+    global _MODEL, _MODEL_TYPE, _MODEL_INFO
+    if _MODEL is not None:
+        return _MODEL
+
+    # 1. First check if fine-tuned weights already exist locally on disk (cached)
+    if SOUTH_INDIAN_WEIGHTS.is_file():
+        logger.info(f"Loading local fine-tuned YOLO model from {SOUTH_INDIAN_WEIGHTS}")
+        print(f"[INFO] Loading local fine-tuned YOLO model from {SOUTH_INDIAN_WEIGHTS}", flush=True)
+        try:
             _MODEL = YOLO(str(SOUTH_INDIAN_WEIGHTS))
-        elif BASE_WEIGHTS.is_file():
-            print(f"South Indian model not found. Falling back to base YOLO from {BASE_WEIGHTS}")
-            _MODEL = YOLO(str(BASE_WEIGHTS))
-        else:
-            raise FileNotFoundError(
-                f"No YOLO model weights found at {SOUTH_INDIAN_WEIGHTS} or {BASE_WEIGHTS}."
+            _MODEL_TYPE = "fine-tuned"
+            _MODEL_INFO = {"path": str(SOUTH_INDIAN_WEIGHTS), "type": "fine-tuned"}
+            return _MODEL
+        except Exception as exc:
+            logger.warning(
+                f"Existing local weights at {SOUTH_INDIAN_WEIGHTS} corrupted or unreadable: {exc}. Re-downloading."
             )
-    return _MODEL
+            try:
+                SOUTH_INDIAN_WEIGHTS.unlink()
+            except OSError:
+                pass
+
+    # 2. Attempt automatic download from hosted URL (GitHub Releases or custom env var)
+    weights_url = get_model_weights_url()
+
+    download_error: str | None = None
+    if weights_url:
+        try:
+            download_model_weights(weights_url, SOUTH_INDIAN_WEIGHTS)
+            if SOUTH_INDIAN_WEIGHTS.is_file():
+                _MODEL = YOLO(str(SOUTH_INDIAN_WEIGHTS))
+                _MODEL_TYPE = "fine-tuned"
+                _MODEL_INFO = {"path": str(SOUTH_INDIAN_WEIGHTS), "type": "fine-tuned"}
+                return _MODEL
+        except Exception as exc:
+            download_error = str(exc)
+            warn_msg = (
+                f"Could not download model weights from {weights_url}: {exc}. "
+                "Using base YOLOv8 fallback."
+            )
+            logger.warning(warn_msg)
+            print(f"[WARNING] {warn_msg}", flush=True)
+
+    # 3. Fallback to local base model if present
+    if BASE_WEIGHTS.is_file():
+        warn_msg = (
+            f"Using local base YOLOv8 model from {BASE_WEIGHTS}. "
+            "WARNING: Base model has NOT been fine-tuned on South Indian dishes (rice, sambar, curd rice, etc.) "
+            "and will produce generic COCO labels."
+        )
+        logger.warning(warn_msg)
+        print(f"[WARNING] {warn_msg}", flush=True)
+        try:
+            _MODEL = YOLO(str(BASE_WEIGHTS))
+            _MODEL_TYPE = "base_fallback"
+            _MODEL_INFO = {"path": str(BASE_WEIGHTS), "type": "base_fallback", "warning": warn_msg}
+            return _MODEL
+        except Exception as exc:
+            logger.warning(f"Failed loading local base weights {BASE_WEIGHTS}: {exc}")
+
+    # 4. Fallback to ultralytics built-in auto-download for yolov8n.pt
+    fallback_reason = f" (Download failed: {download_error})" if download_error else ""
+    warn_msg = (
+        f"South Indian fine-tuned weights could not be loaded{fallback_reason}. "
+        "Falling back to ultralytics base yolov8n.pt (will auto-download from ultralytics assets). "
+        "WARNING: Base model has NOT been trained on South Indian dishes and will produce generic COCO detections."
+    )
+    logger.warning(warn_msg)
+    print(f"[WARNING] {warn_msg}", flush=True)
+
+    try:
+        _MODEL = YOLO("yolov8n.pt")
+        _MODEL_TYPE = "base_fallback"
+        _MODEL_INFO = {"path": "yolov8n.pt", "type": "base_fallback", "warning": warn_msg}
+        return _MODEL
+    except Exception as exc:
+        err_msg = (
+            f"Failed to load any YOLO model. Fine-tuned weights could not be downloaded "
+            f"from {weights_url} ({download_error}), and base yolov8n.pt fallback failed: {exc}"
+        )
+        logger.error(err_msg)
+        print(f"[ERROR] {err_msg}", flush=True)
+        raise RuntimeError(err_msg) from exc
 
 
 def estimate_leftover_grams(
@@ -200,4 +391,6 @@ def process_plate_image(
         "total_estimated_wasted_grams": total_est_wasted_g,
         "detections": detections,
         "annotated_image_b64": f"data:image/jpeg;base64,{annotated_b64}",
+        "model_type": _MODEL_TYPE,
+        "model_warning": _MODEL_INFO.get("warning"),
     }

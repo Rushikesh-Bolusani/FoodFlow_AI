@@ -1069,7 +1069,7 @@ elif nav_page == "AI Plate Return Scanner":
                             "meal": scan_meal,
                             "save_record": "false",
                         }
-                        res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=15)
+                        res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
                         if res.status_code == 200:
                             st.session_state["last_detection"] = res.json()
                             st.session_state["uploaded_file_bytes"] = input_bytes
@@ -1085,6 +1085,13 @@ elif nav_page == "AI Plate Return Scanner":
             if detection:
                 count = detection.get("detected_count", 0)
                 total_g = detection.get("total_estimated_wasted_grams", 0)
+
+                if detection.get("model_type") == "base_fallback":
+                    st.info(
+                        "ℹ️ **Running with Base YOLOv8 Fallback:** Fine-tuned South Indian weights (`best.pt`) "
+                        "were not found or could not be downloaded. Detections use generic COCO classes. "
+                        "To enable South Indian dish recognition, upload `best.pt` to GitHub Releases."
+                    )
 
                 st.markdown(
                     f"""
@@ -1138,7 +1145,7 @@ elif nav_page == "AI Plate Return Scanner":
                                     "meal": scan_meal,
                                     "save_record": "true",
                                 }
-                                save_res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=15)
+                                save_res = requests.post(f"{API_BASE}/detect", files=files, params=params, timeout=60)
                                 if save_res.status_code == 200:
                                     save_data = save_res.json()
                                     saved_count = len(save_data.get("saved_records", []))
