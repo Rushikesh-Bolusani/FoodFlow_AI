@@ -95,15 +95,20 @@ def resolve_target_base_url(target_base_url: str | None = None) -> tuple[str, st
     if custom_deploy_url:
         return custom_deploy_url.strip().rstrip("/"), "Environment ($DEPLOY_URL)"
 
-    # 4. Local fallback: detected Wi-Fi IP on port 8000
+    # 4. Streamlit Community Cloud
+    if os.path.exists("/mount/src/foodflow_ai") or os.environ.get("STREAMLIT_SHARING_HOST"):
+        return "https://foodflowai-vatb3mag7rsfwenohcxu5b.streamlit.app", "Streamlit Community Cloud"
+
+    # 5. Local fallback: detected Wi-Fi IP on Streamlit port
     detected_ip = get_local_wifi_ip()
-    return f"http://{detected_ip}:8000", f"Local Wi-Fi ({detected_ip}:8000)"
+    port = os.environ.get("PORT", "8501")
+    return f"http://{detected_ip}:{port}", f"Local Wi-Fi ({detected_ip}:{port})"
 
 
 def generate_qr(target_base_url: str | None = None) -> Path:
     """Generate both printable poster card and raw QR code image with verified URL."""
     target_base_url, env_source = resolve_target_base_url(target_base_url)
-    feedback_url = f"{target_base_url}/feedback_form/index.html?site_id=1"
+    feedback_url = f"{target_base_url}/?mode=feedback&site_id=1"
 
     # Crisp QR code with High Error Correction
     qr = qrcode.QRCode(

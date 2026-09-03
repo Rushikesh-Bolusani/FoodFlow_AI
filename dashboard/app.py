@@ -504,6 +504,198 @@ def start_backend_if_needed():
 
 start_backend_if_needed()
 
+# Check if visitor is a diner scanning the plate return QR code
+query_params = getattr(st, "query_params", {})
+query_mode = query_params.get("mode") or query_params.get("page")
+is_feedback_mode = query_mode in ["feedback", "qr"] or "feedback" in query_params
+
+
+def render_mobile_diner_feedback_view():
+    """Renders a standalone, responsive mobile feedback form when scanned via QR code."""
+    st.markdown(
+        """
+        <style>
+            [data-testid="stSidebar"] { display: none !important; }
+            header[data-testid="stHeader"] { display: none !important; }
+            #MainMenu, footer { visibility: hidden; }
+            .main .block-container {
+                max-width: 520px !important;
+                padding: 1.25rem 1rem 3rem 1rem !important;
+                margin: 0 auto !important;
+            }
+            .mobile-feedback-card {
+                background: #FFFFFF;
+                border: 1px solid #E5E7EB;
+                border-radius: 12px;
+                padding: 1.25rem;
+                box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+                margin-bottom: 1rem;
+            }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    # Top Brand Header
+    st.markdown(
+        """
+        <div style="display:flex; align-items:center; gap:0.75rem; margin-bottom:1.25rem;">
+            <div style="background:#1E3A5F; color:#FFFFFF; width:38px; height:38px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:18px;">F</div>
+            <div>
+                <div style="font-size:1.15rem; font-weight:700; color:#1E293B; letter-spacing:-0.02em; line-height:1.2;">FoodFlow AI</div>
+                <div style="font-size:0.8rem; color:#64748B;">Plate Return Diner Feedback</div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    if st.session_state.get("feedback_submitted"):
+        st.markdown(
+            """
+            <div class="mobile-feedback-card" style="text-align:center; padding:2rem 1.25rem; border-top:4px solid #0F766E;">
+                <div style="font-size:2.8rem; margin-bottom:0.75rem;">🎉</div>
+                <h3 style="color:#1E293B; font-weight:700; font-size:1.25rem; margin-bottom:0.5rem;">Feedback Received!</h3>
+                <p style="color:#475569; font-size:0.9rem; line-height:1.5; margin-bottom:1.5rem;">
+                    Thank you for helping us eliminate food waste! Your feedback directly guides kitchen portion sizes and next-day meal planning.
+                </p>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+        if st.button("Submit Another Response", type="primary", use_container_width=True):
+            st.session_state["feedback_submitted"] = False
+            st.rerun()
+        return
+
+    # Extract site_id
+    raw_site_id = st.query_params.get("site_id", "1")
+    try:
+        site_id = int(raw_site_id)
+    except Exception:
+        site_id = 1
+
+    site_name = "Hostel 1"
+    dishes_list = []
+    dish_map = {}
+    try:
+        from backend.database import SessionLocal
+        from backend import models
+
+        db = SessionLocal()
+        s = db.get(models.Site, site_id)
+        if s:
+            site_name = s.name
+        db_dishes = db.query(models.Dish).order_by(models.Dish.name).all()
+        for d in db_dishes:
+            dishes_list.append(d.name)
+            dish_map[d.name] = d.id
+        db.close()
+    except Exception:
+        pass
+
+    if not dishes_list:
+        dishes_list = [
+            "Steamed Rice", "Sambar Rice", "Curd Rice", "Chicken Biryani",
+            "Vegetable Curry", "Potato Curry", "Chicken Curry", "Rasam",
+            "Fresh Salad", "Bonda", "Sweet"
+        ]
+
+    # Time-based meal auto-selection (IST: UTC+5:30)
+    utc_hour = time.gmtime().tm_hour
+    utc_min = time.gmtime().tm_min
+    ist_hour = (utc_hour + 5 + (utc_min + 30) // 60) % 24
+
+    if 7 <= ist_hour < 11:
+        default_meal_idx = 0  # Breakfast
+    elif 11 <= ist_hour < 16:
+        default_meal_idx = 1  # Lunch
+    elif 16 <= ist_hour < 19:
+        default_meal_idx = 2  # Snacks
+    else:
+        default_meal_idx = 3  # Dinner
+
+    st.markdown(
+        f"""
+        <div class="mobile-feedback-card">
+            <div style="font-size:0.75rem; font-weight:600; color:#64748B; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.25rem;">Location</div>
+            <div style="font-size:1.05rem; font-weight:700; color:#1E293B;">{site_name} Mess</div>
+            <div style="font-size:0.8rem; color:#64748B; margin-top:0.2rem;">Quick 15-second plate return survey</div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    with st.form("mobile_diner_form", clear_on_submit=False):
+        meal = st.radio(
+            "Which meal did you just have?",
+            options=["Breakfast", "Lunch", "Snacks", "Dinner"],
+            index=default_meal_idx,
+            horizontal=True,
+        )
+
+        leftover_dish = st.selectbox(
+            "Which dish was primarily left on your plate?",
+            options=["-- Entire Plate / General --"] + dishes_list,
+        )
+
+        reasons = st.multiselect(
+            "Why was food left on the plate?",
+            options=[
+                "Portion size too big",
+                "Didn't like the taste / flavor",
+                "Food was cold / poor texture",
+                "Too spicy",
+                "Not feeling hungry / in a hurry",
+                "Took extra by mistake",
+                "Other reason",
+            ],
+            default=["Portion size too big"],
+        )
+
+        rating = st.select_slider(
+            "Overall Meal Rating",
+            options=[1, 2, 3, 4, 5],
+            value=4,
+            format_func=lambda x: f"{'⭐' * x} ({['Poor', 'Fair', 'Good', 'Very Good', 'Excellent'][x-1]})",
+        )
+
+        comment = st.text_area(
+            "Suggestions for the kitchen team (Optional)",
+            placeholder="e.g. Sambar was delicious, but smaller rice scoops would help...",
+            max_chars=300,
+        )
+
+        submitted = st.form_submit_button("Submit Plate Return Feedback", type="primary", use_container_width=True)
+
+        if submitted:
+            try:
+                from backend.database import SessionLocal
+                from backend import models
+
+                db = SessionLocal()
+                dish_id_val = dish_map.get(leftover_dish) if leftover_dish in dish_map else None
+                new_fb = models.Feedback(
+                    site_id=site_id,
+                    meal=meal.lower(),
+                    dish_id=dish_id_val,
+                    reasons=reasons if reasons else ["Portion size too big"],
+                    rating=rating,
+                    comment=comment.strip() if comment else "",
+                )
+                db.add(new_fb)
+                db.commit()
+                db.close()
+                st.session_state["feedback_submitted"] = True
+                st.rerun()
+            except Exception as ex:
+                st.error(f"Error recording feedback: {ex}")
+
+
+if is_feedback_mode:
+    render_mobile_diner_feedback_view()
+    st.stop()
+
 API_BASE = os.environ.get("FOODFLOW_API_URL", "http://127.0.0.1:8000/api")
 DAYS = {0: "Monday", 1: "Tuesday", 2: "Wednesday", 3: "Thursday", 4: "Friday", 5: "Saturday", 6: "Sunday"}
 MEAL_ORDER = ["breakfast", "lunch", "snacks", "dinner"]
@@ -816,7 +1008,31 @@ def get_local_wifi_ip():
 
 
 def get_default_deploy_url():
-    # 1. Render deployment detection
+    # 1. Streamlit request context headers (e.g. reverse proxy forwarded host on Streamlit Cloud)
+    try:
+        if hasattr(st, "context") and hasattr(st.context, "headers"):
+            headers = st.context.headers
+            host = headers.get("x-forwarded-host") or headers.get("host")
+            if host and "localhost" not in host and "127.0.0.1" not in host:
+                proto = headers.get("x-forwarded-proto", "https")
+                return f"{proto}://{host}"
+    except Exception:
+        pass
+
+    # 2. Known Streamlit Community Cloud deployment
+    if (
+        os.path.exists("/mount/src/foodflow_ai")
+        or os.environ.get("STREAMLIT_SHARING_HOST")
+        or "foodflowai" in os.environ.get("HOSTNAME", "")
+    ):
+        return "https://foodflowai-vatb3mag7rsfwenohcxu5b.streamlit.app"
+
+    # 3. Explicit environment override
+    env_url = os.environ.get("DEPLOY_URL") or os.environ.get("PUBLIC_URL")
+    if env_url:
+        return env_url.rstrip("/")
+
+    # 4. Render deployment detection
     is_render = os.environ.get("RENDER") == "true" or "RENDER_EXTERNAL_HOSTNAME" in os.environ
     render_hostname = os.environ.get("RENDER_EXTERNAL_HOSTNAME")
     render_url = os.environ.get("RENDER_EXTERNAL_URL")
@@ -830,25 +1046,10 @@ def get_default_deploy_url():
     if is_render and render_url:
         return render_url.strip().rstrip("/")
 
-    # 2. Explicit environment override
-    env_url = os.environ.get("DEPLOY_URL") or os.environ.get("PUBLIC_URL")
-    if env_url:
-        return env_url.rstrip("/")
-
-    # 3. Streamlit request context headers (e.g. reverse proxy forwarded host)
-    try:
-        if hasattr(st, "context") and hasattr(st.context, "headers"):
-            headers = st.context.headers
-            host = headers.get("x-forwarded-host") or headers.get("host")
-            if host and "localhost" not in host and "127.0.0.1" not in host:
-                proto = headers.get("x-forwarded-proto", "https")
-                return f"{proto}://{host}"
-    except Exception:
-        pass
-
-    # 4. Local fallback
+    # 5. Local fallback: use Streamlit server port (8501)
     local_ip = get_local_wifi_ip()
-    return f"http://{local_ip}:8000"
+    port = os.environ.get("PORT", "8501")
+    return f"http://{local_ip}:{port}"
 
 
 st.sidebar.markdown(
@@ -864,10 +1065,10 @@ default_app_url = get_default_deploy_url()
 deploy_base = st.sidebar.text_input(
     "Server Base URL",
     value=default_app_url,
-    help="Set your live domain (e.g. https://foodflowai.streamlit.app or http://192.168.0.4:8000)",
+    help="Set your live domain (e.g. https://foodflowai-vatb3mag7rsfwenohcxu5b.streamlit.app or http://192.168.0.4:8501)",
     label_visibility="collapsed",
 )
-qr_target_url = f"{deploy_base.rstrip('/')}/feedback_form/index.html?site_id={selected_site_id}"
+qr_target_url = f"{deploy_base.rstrip('/')}/?mode=feedback&site_id={selected_site_id}"
 
 qr_img_bytes = generate_qr_bytes(qr_target_url)
 st.sidebar.image(qr_img_bytes, caption="Hostel 1 Countertop QR Code", use_container_width=True)
